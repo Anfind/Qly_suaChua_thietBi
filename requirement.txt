@@ -1,0 +1,87 @@
+🧾 Quy trình quản lý đề xuất sửa chữa trang thiết bị
+I. Mục tiêu:
+Xây dựng hệ thống quản lý toàn trình các đề xuất sửa chữa trang thiết bị từ khâu tạo yêu cầu, bàn giao, sửa chữa, đến hoàn tất và theo dõi qua dashboard.
+
+II. Các vai trò chính
+Vai trò	Chức năng chính
+🧑‍💼 Người đề xuất:
+    - Tạo yêu cầu sửa chữa
+    - Xem lịch sử yêu cầu cá nhân
+🚚 Giao liên:
+    - Nhận thiết bị từ người đề xuất
+    - Bàn giao cho văn thư/đơn vị sửa chữa
+📑 Văn thư:
+    - Tiếp nhận thiết bị
+    - Bàn giao cho đơn vị sửa chữa
+    - Thu hồi sau sửa chữa
+🛠️ Đơn vị sửa chữa:
+    - Nhận thiết bị
+    - Cập nhật quá trình sửa chữa
+    - Xác nhận hoàn thành
+👤 Quản trị viên:
+    - Quản lý người dùng, đơn vị, trạng thái, thiết bị, nội dung sửa chữa
+
+III. Quy trình nghiệp vụ
+1. Tạo đề xuất sửa chữa (Người đề xuất)
+Chọn thiết bị cần sửa chữa.
+
+Nhập mô tả tình trạng lỗi.
+
+Đính kèm ảnh chụp/video nếu có.
+
+Hệ thống sinh mã yêu cầu (mã đơn).
+
+Trạng thái: "Chờ bàn giao"
+
+2. Bàn giao thiết bị (Giao liên)
+Nhận thiết bị từ người đề xuất.
+
+Xác nhận bàn giao và tình trạng thiết bị.
+
+Trạng thái: "Đã bàn giao cho văn thư"
+
+3. Tiếp nhận & chuyển đến đơn vị sửa chữa (Văn thư)
+Kiểm tra thông tin và thiết bị thực tế.
+
+Bàn giao cho đơn vị sửa chữa chuyên môn.
+
+Trạng thái: "Đã chuyển đơn vị sửa chữa"
+
+4. Thực hiện sửa chữa (Đơn vị sửa chữa)
+Cập nhật nội dung sửa chữa, linh kiện thay thế (nếu có).
+
+Có thể cập nhật nhiều lần.
+
+Khi hoàn tất → bấm "Xác nhận hoàn thành".
+
+Trạng thái: "Đã sửa xong – chờ thu hồi"
+
+5. Thu hồi thiết bị (Văn thư)
+Kiểm tra lại thiết bị sau sửa.
+
+Ghi chú nếu có khác biệt với thiết bị ban đầu.
+
+Trạng thái: "Đã thu hồi – chờ trả lại"
+
+6. Hoàn tất quy trình (Giao liên)
+Trả lại thiết bị cho người đề xuất.
+
+Cập nhật trạng thái cuối cùng: "Hoàn tất"
+
+IV. Các thành phần quản lý
+Phân hệ	Mô tả
+🔐 Quản lý người dùng & phân quyền	Phân vai trò: đề xuất, giao liên, văn thư, sửa chữa, quản trị
+🏢 Quản lý đơn vị	Các đơn vị đề xuất, tiếp nhận, sửa chữa thiết bị
+🔧 Quản lý thiết bị	Thông tin thiết bị: mã, loại, model, vị trí sử dụng
+📋 Quản lý nội dung sửa chữa	Danh mục lỗi/sự cố phổ biến, hướng xử lý, chi phí (nếu có)
+🔄 Quản lý trạng thái	Theo dõi từng trạng thái của đơn từ lúc tạo đến hoàn tất
+📊 Dashboard giám sát	Thống kê theo thời gian, đơn vị, loại thiết bị, tình trạng xử lý
+
+V. Lợi ích hệ thống
+Rõ ràng quy trình – không bỏ sót thiết bị.
+
+Theo dõi tình trạng từng thiết bị theo thời gian thực.
+
+Dễ dàng thống kê, truy vết lịch sử từng lần sửa chữa.
+
+Quản trị linh hoạt, mở rộng cho các lĩnh vực khác.
