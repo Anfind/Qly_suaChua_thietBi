@@ -1,5 +1,5 @@
 <?php
-require_once '../config/config.php';
+require_once __DIR__ . '/../config/config.php';
 
 /**
  * Model User - Quản lý người dùng
@@ -24,18 +24,36 @@ class User {
         
         $user = $this->db->fetch($sql, [$username]);
         
-        if ($user && password_verify($password, $user['password'])) {
-            // Cập nhật thời gian đăng nhập cuối
-            $this->db->update('users', 
-                ['last_login' => date('Y-m-d H:i:s')], 
-                'id = ?', 
-                [$user['id']]
-            );
+        if ($user) {
+            // Kiểm tra password (hỗ trợ cả plain text và hash)
+            $password_valid = false;
             
-            // Xóa password khỏi session
-            unset($user['password']);
+            // Nếu password trong DB là plain text (không có $ ở đầu)
+            if (strpos($user['password'], '$') !== 0) {
+                $password_valid = ($password === $user['password']);
+            } else {
+                // Nếu password đã được hash
+                $password_valid = password_verify($password, $user['password']);
+            }
             
-            return $user;
+            if ($password_valid) {
+                try {
+                    // Cập nhật thời gian đăng nhập cuối
+                    $this->db->update('users', 
+                        ['last_login' => date('Y-m-d H:i:s')], 
+                        'id = ?', 
+                        [$user['id']]
+                    );
+                } catch (Exception $e) {
+                    // Log lỗi nhưng không ngăn login thành công
+                    error_log("Failed to update last_login for user {$user['id']}: " . $e->getMessage());
+                }
+                
+                // Xóa password khỏi session
+                unset($user['password']);
+                
+                return $user;
+            }
         }
         
         return false;
@@ -120,7 +138,7 @@ class User {
         
         $userData = [
             'username' => $data['username'],
-            'password' => password_hash($data['password'], PASSWORD_DEFAULT),
+            'password' => $data['password'],
             'full_name' => $data['full_name'],
             'email' => $data['email'] ?? null,
             'phone' => $data['phone'] ?? null,
@@ -166,7 +184,7 @@ class User {
         
         // Cập nhật password nếu có
         if (!empty($data['password'])) {
-            $updateData['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
+            $updateData['password'] = $data['password'];
         }
         
         $updateData['updated_at'] = date('Y-m-d H:i:s');
@@ -191,12 +209,12 @@ class User {
     public function changePassword($id, $currentPassword, $newPassword) {
         $user = $this->db->fetch("SELECT password FROM users WHERE id = ?", [$id]);
         
-        if (!$user || !password_verify($currentPassword, $user['password'])) {
+        if (!$user || $currentPassword !== $user['password']) {
             throw new Exception('Mật khẩu hiện tại không đúng');
         }
         
         return $this->db->update('users', 
-            ['password' => password_hash($newPassword, PASSWORD_DEFAULT), 'updated_at' => date('Y-m-d H:i:s')], 
+            ['password' => $newPassword, 'updated_at' => date('Y-m-d H:i:s')], 
             'id = ?', 
             [$id]
         );

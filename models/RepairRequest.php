@@ -220,14 +220,22 @@ class RepairRequest {
      * Lấy đơn theo mã đơn
      */
     public function getByCode($request_code) {
-        $sql = "SELECT r.*, e.name as equipment_name, e.code as equipment_code,
-                       u.full_name as requester_name, d.name as department_name,
-                       s.name as status_name, s.code as status_code, s.color as status_color
+        $sql = "SELECT r.*, 
+                       e.name as equipment_name, e.code as equipment_code, e.model as equipment_model, e.location as equipment_location,
+                       u.full_name as requester_name, u.phone as requester_phone, u.email as requester_email,
+                       d.name as department_name,
+                       s.name as status_name, s.code as status_code, s.color as status_color, s.icon as status_icon,
+                       logistics.full_name as logistics_name,
+                       clerk.full_name as clerk_name,
+                       tech.full_name as technician_name
                 FROM repair_requests r
                 LEFT JOIN equipments e ON r.equipment_id = e.id
                 LEFT JOIN users u ON r.requester_id = u.id
                 LEFT JOIN departments d ON u.department_id = d.id
                 LEFT JOIN repair_statuses s ON r.current_status_id = s.id
+                LEFT JOIN users logistics ON r.assigned_logistics_id = logistics.id
+                LEFT JOIN users clerk ON r.assigned_clerk_id = clerk.id
+                LEFT JOIN users tech ON r.assigned_technician_id = tech.id
                 WHERE r.request_code = ?";
         
         return $this->db->fetch($sql, [$request_code]);

@@ -58,10 +58,10 @@ class RepairController {
      * Dashboard giao liên
      */
     private function logisticsDashboard() {
-        $pending = $this->repairModel->getByStatus('PENDING_HANDOVER');
-        $retrieved = $this->repairModel->getByStatus('RETRIEVED');
+        $pendingHandover = $this->repairModel->getByStatus('PENDING_HANDOVER');
+        $readyForReturn = $this->repairModel->getByStatus('RETRIEVED');
         
-        return compact('pending', 'retrieved');
+        return compact('pendingHandover', 'readyForReturn');
     }
     
     /**
@@ -117,7 +117,8 @@ class RepairController {
         
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $user = current_user();
-            $equipments = $this->equipmentModel->getByDepartment($user['department_id']);
+            // Lấy tất cả thiết bị active thay vì chỉ theo department
+            $equipments = $this->equipmentModel->getAll(['status' => 'active']);
             return compact('equipments');
         }
         

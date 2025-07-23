@@ -456,11 +456,11 @@
                 <div class="nav-section-title">Sửa chữa thiết bị</div>
                 
                 <?php if (has_role('requester')): ?>
-                <a href="<?= url('requests/create.php') ?>" class="nav-link <?= $current_page === 'create' ? 'active' : '' ?>">
+                <a href="<?= url('repairs/create.php') ?>" class="nav-link <?= $current_page === 'create' ? 'active' : '' ?>">
                     <i class="fas fa-plus-circle"></i>
                     Tạo đề xuất
                 </a>
-                <a href="<?= url('requests/my-requests.php') ?>" class="nav-link <?= $current_page === 'my-requests' ? 'active' : '' ?>">
+                <a href="<?= url('repairs/index.php') ?>" class="nav-link <?= $current_page === 'index' && strpos($_SERVER['REQUEST_URI'], 'repairs') ? 'active' : '' ?>">
                     <i class="fas fa-list-alt"></i>
                     Đơn của tôi
                 </a>
@@ -504,7 +504,7 @@
                 <?php endif; ?>
                 
                 <?php if (has_any_role(['admin', 'clerk', 'logistics'])): ?>
-                <a href="<?= url('requests/index.php') ?>" class="nav-link <?= $current_page === 'index' && strpos($_SERVER['REQUEST_URI'], 'requests') ? 'active' : '' ?>">
+                <a href="<?= url('repairs/index.php') ?>" class="nav-link <?= $current_page === 'index' && strpos($_SERVER['REQUEST_URI'], 'repairs') ? 'active' : '' ?>">
                     <i class="fas fa-clipboard-list"></i>
                     Tất cả đơn
                 </a>

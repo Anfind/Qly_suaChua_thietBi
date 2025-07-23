@@ -2,7 +2,7 @@
 /**
  * Ajax handler cho file uploads
  */
-require_once '../config/config.php';
+require_once __DIR__ . '/../config/config.php';
 require_login();
 
 header('Content-Type: application/json');

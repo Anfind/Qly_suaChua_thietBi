@@ -1,5 +1,5 @@
 <?php
-require_once '../config/config.php';
+require_once __DIR__ . '/../config/config.php';
 require_role('admin');
 
 $title = 'Quản lý thiết bị';
@@ -19,20 +19,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         switch ($action) {
             case 'create':
                 $data = [
-                    'name' => $_POST['name'],
-                    'serial_number' => $_POST['serial_number'],
-                    'equipment_type' => $_POST['equipment_type'],
-                    'model' => $_POST['model'],
-                    'brand' => $_POST['brand'],
-                    'purchase_date' => $_POST['purchase_date'],
-                    'warranty_expires' => $_POST['warranty_expires'],
-                    'status' => $_POST['status'],
-                    'department_id' => $_POST['department_id'],
-                    'location' => $_POST['location'],
-                    'description' => $_POST['description'],
-                    'specifications' => $_POST['specifications'],
-                    'value' => $_POST['value'],
-                    'supplier' => $_POST['supplier']
+                    'name' => $_POST['name'] ?? '',
+                    'code' => $_POST['code'] ?? '',
+                    'type_id' => $_POST['type_id'] ?? null,
+                    'model' => $_POST['model'] ?? '',
+                    'brand' => $_POST['brand'] ?? '',
+                    'purchase_date' => $_POST['purchase_date'] ?? null,
+                    'warranty_date' => $_POST['warranty_date'] ?? null,
+                    'status' => $_POST['status'] ?? 'active',
+                    'department_id' => $_POST['department_id'] ?? null,
+                    'location' => $_POST['location'] ?? '',
+                    'description' => $_POST['description'] ?? '',
+                    'specifications' => $_POST['specifications'] ?? '',
+                    'purchase_price' => $_POST['purchase_price'] ?? null
                 ];
                 
                 $id = $equipment->create($data);
@@ -53,22 +52,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
                 
             case 'update':
-                $id = (int)$_POST['id'];
+                $id = (int)($_POST['id'] ?? 0);
                 $data = [
-                    'name' => $_POST['name'],
-                    'serial_number' => $_POST['serial_number'],
-                    'equipment_type' => $_POST['equipment_type'],
-                    'model' => $_POST['model'],
-                    'brand' => $_POST['brand'],
-                    'purchase_date' => $_POST['purchase_date'],
-                    'warranty_expires' => $_POST['warranty_expires'],
-                    'status' => $_POST['status'],
-                    'department_id' => $_POST['department_id'],
-                    'location' => $_POST['location'],
-                    'description' => $_POST['description'],
-                    'specifications' => $_POST['specifications'],
-                    'value' => $_POST['value'],
-                    'supplier' => $_POST['supplier']
+                    'name' => $_POST['name'] ?? '',
+                    'code' => $_POST['code'] ?? '',
+                    'type_id' => $_POST['type_id'] ?? null,
+                    'model' => $_POST['model'] ?? '',
+                    'brand' => $_POST['brand'] ?? '',
+                    'purchase_date' => $_POST['purchase_date'] ?? null,
+                    'warranty_date' => $_POST['warranty_date'] ?? null,
+                    'status' => $_POST['status'] ?? 'active',
+                    'department_id' => $_POST['department_id'] ?? null,
+                    'location' => $_POST['location'] ?? '',
+                    'description' => $_POST['description'] ?? '',
+                    'specifications' => $_POST['specifications'] ?? '',
+                    'purchase_price' => $_POST['purchase_price'] ?? null,
+                    'supplier' => $_POST['supplier'] ?? ''
                 ];
                 
                 $equipment->update($id, $data);
@@ -289,7 +288,7 @@ ob_start();
                     <tr>
                         <th>Ảnh</th>
                         <th>Tên thiết bị</th>
-                        <th>Số serial</th>
+                        <th>Mã thiết bị</th>
                         <th>Loại</th>
                         <th>Phòng ban</th>
                         <th>Trạng thái</th>
@@ -323,10 +322,10 @@ ob_start();
                                     <strong><?= e($eq['name']) ?></strong><br>
                                     <small class="text-muted"><?= e($eq['brand']) ?> <?= e($eq['model']) ?></small>
                                 </td>
-                                <td><?= e($eq['serial_number']) ?></td>
+                                <td><?= e($eq['code']) ?></td>
                                 <td>
                                     <span class="badge bg-secondary">
-                                        <?= $equipmentTypes[$eq['equipment_type']] ?? $eq['equipment_type'] ?>
+                                        <?= e($eq['type_name'] ?? 'Chưa phân loại') ?>
                                     </span>
                                 </td>
                                 <td><?= e($eq['department_name'] ?? 'Chưa phân bổ') ?></td>
@@ -410,15 +409,15 @@ ob_start();
                             <input type="text" name="name" id="equipmentName" class="form-control" required>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Số serial</label>
-                            <input type="text" name="serial_number" id="equipmentSerial" class="form-control">
+                            <label class="form-label">Mã thiết bị</label>
+                            <input type="text" name="code" id="equipmentCode" class="form-control" required>
                         </div>
                     </div>
                     
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Loại thiết bị</label>
-                            <select name="equipment_type" id="equipmentType" class="form-select">
+                            <select name="type_id" id="equipmentType" class="form-select">
                                 <?php foreach ($equipmentTypes as $key => $value): ?>
                                     <option value="<?= $key ?>"><?= $value ?></option>
                                 <?php endforeach; ?>
@@ -462,7 +461,7 @@ ob_start();
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Hết bảo hành</label>
-                            <input type="date" name="warranty_expires" id="equipmentWarranty" class="form-control">
+                            <input type="date" name="warranty_date" id="equipmentWarranty" class="form-control">
                         </div>
                     </div>
                     
@@ -473,7 +472,7 @@ ob_start();
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Giá trị (VNĐ)</label>
-                            <input type="number" name="value" id="equipmentValue" class="form-control" min="0">
+                            <input type="number" name="purchase_price" id="equipmentValue" class="form-control" min="0">
                         </div>
                     </div>
                     
@@ -600,17 +599,16 @@ $custom_js = "
                     document.getElementById('equipmentId').value = eq.id;
                     
                     document.getElementById('equipmentName').value = eq.name || '';
-                    document.getElementById('equipmentSerial').value = eq.serial_number || '';
-                    document.getElementById('equipmentType').value = eq.equipment_type || '';
+                    document.getElementById('equipmentCode').value = eq.code || '';
+                    document.getElementById('equipmentType').value = eq.type_id || '';
                     document.getElementById('equipmentBrand').value = eq.brand || '';
                     document.getElementById('equipmentModel').value = eq.model || '';
                     document.getElementById('equipmentDepartment').value = eq.department_id || '';
                     document.getElementById('equipmentStatus').value = eq.status || '';
                     document.getElementById('equipmentPurchaseDate').value = eq.purchase_date || '';
-                    document.getElementById('equipmentWarranty').value = eq.warranty_expires || '';
+                    document.getElementById('equipmentWarranty').value = eq.warranty_date || '';
                     document.getElementById('equipmentLocation').value = eq.location || '';
-                    document.getElementById('equipmentValue').value = eq.value || '';
-                    document.getElementById('equipmentSupplier').value = eq.supplier || '';
+                    document.getElementById('equipmentValue').value = eq.purchase_price || '';
                     document.getElementById('equipmentDescription').value = eq.description || '';
                     document.getElementById('equipmentSpecs').value = eq.specifications || '';
                     

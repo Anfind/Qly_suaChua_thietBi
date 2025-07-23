@@ -1,5 +1,5 @@
 <?php
-require_once '../config/config.php';
+require_once __DIR__ . '/../config/config.php';
 require_any_role(['technician', 'admin']);
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

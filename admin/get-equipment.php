@@ -1,5 +1,5 @@
 <?php
-require_once '../config/config.php';
+require_once __DIR__ . '/../config/config.php';
 require_role('admin');
 
 header('Content-Type: application/json');
@@ -12,7 +12,7 @@ if (!isset($_GET['id'])) {
 }
 
 $id = (int)$_GET['id'];
-$equipmentData = $equipment->findById($id);
+$equipmentData = $equipment->getById($id);
 
 if (!$equipmentData) {
     echo json_encode(['success' => false, 'message' => 'Không tìm thấy thiết bị']);
@@ -27,20 +27,11 @@ if (isset($_GET['view'])) {
         $department = $db->fetch("SELECT name FROM departments WHERE id = ?", [$equipmentData['department_id']]);
     }
     
-    $equipmentTypes = [
-        'computer' => 'Máy tính',
-        'printer' => 'Máy in',
-        'scanner' => 'Máy quét',
-        'projector' => 'Máy chiếu',
-        'air_conditioner' => 'Điều hòa',
-        'other' => 'Khác'
-    ];
-    
     $statusLabels = [
         'active' => 'Hoạt động',
-        'maintenance' => 'Bảo trì',
-        'broken' => 'Hỏng',
-        'decommissioned' => 'Ngừng sử dụng'
+        'maintenance' => 'Bảo trì', 
+        'damaged' => 'Hỏng',
+        'disposed' => 'Ngừng sử dụng'
     ];
     
     ob_start();

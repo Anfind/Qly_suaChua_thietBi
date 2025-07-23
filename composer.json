@@ -7,7 +7,6 @@
   "license": "MIT",
   "require": {
     "php": ">=7.4",
-    "phpmailer/phpmailer": "^6.8",
     "phpoffice/phpspreadsheet": "^1.28",
     "dompdf/dompdf": "^2.0"
   },

@@ -1,0 +1,6 @@
+[22-Jul-2025 17:20:58 Asia/Ho_Chi_Minh] Query failed: SQLSTATE[HY093]: Invalid parameter number: mixed named and positional parameters
+[22-Jul-2025 17:22:03 Asia/Ho_Chi_Minh] Query failed: SQLSTATE[HY093]: Invalid parameter number: mixed named and positional parameters
+[23-Jul-2025 10:58:15 Asia/Ho_Chi_Minh] PHP Warning:  Undefined array key "REQUEST_METHOD" in D:\An\Qly_suaChua_thietBi\debug_csrf.php on line 27
+[23-Jul-2025 11:02:32 Asia/Ho_Chi_Minh] PHP Warning:  session_regenerate_id(): Session ID cannot be regenerated after headers have already been sent in D:\An\Qly_suaChua_thietBi\test_csrf_logic.php on line 13
+[23-Jul-2025 11:02:32 Asia/Ho_Chi_Minh] PHP Warning:  session_regenerate_id(): Session ID cannot be regenerated after headers have already been sent in D:\An\Qly_suaChua_thietBi\test_csrf_logic.php on line 38
+[23-Jul-2025 11:02:32 Asia/Ho_Chi_Minh] PHP Warning:  session_regenerate_id(): Session ID cannot be regenerated after headers have already been sent in D:\An\Qly_suaChua_thietBi\test_csrf_logic.php on line 83

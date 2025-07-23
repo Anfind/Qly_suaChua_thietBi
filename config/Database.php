@@ -6,18 +6,19 @@ class Database {
     private $host = 'localhost';
     private $dbname = 'equipment_repair_management';
     private $username = 'root';
-    private $password = '';
+    private $password = '210506';
     private $pdo;
     private static $instance = null;
 
-    private function __construct() {
+    public function __construct() {
         try {
             $dsn = "mysql:host={$this->host};dbname={$this->dbname};charset=utf8mb4";
             $options = [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
-                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4",
+                PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false
             ];
             
             $this->pdo = new PDO($dsn, $this->username, $this->password, $options);
@@ -54,7 +55,9 @@ class Database {
             return $stmt;
         } catch (PDOException $e) {
             error_log("Query failed: " . $e->getMessage());
-            throw new Exception("Lỗi thực thi truy vấn cơ sở dữ liệu");
+            error_log("SQL: " . $sql);
+            error_log("Params: " . print_r($params, true));
+            throw new Exception("Lỗi thực thi truy vấn cơ sở dữ liệu: " . $e->getMessage());
         }
     }
 
@@ -90,15 +93,28 @@ class Database {
      * Cập nhật dữ liệu
      */
     public function update($table, $data, $where, $whereParams = []) {
-        $fields = [];
-        foreach (array_keys($data) as $field) {
-            $fields[] = "{$field} = :{$field}";
+        try {
+            $fields = [];
+            $params = [];
+            
+            // Tạo SET clause với placeholder bình thường
+            foreach ($data as $field => $value) {
+                $fields[] = "{$field} = ?";
+                $params[] = $value;
+            }
+            
+            // Thêm where parameters
+            $params = array_merge($params, $whereParams);
+            
+            $sql = "UPDATE {$table} SET " . implode(', ', $fields) . " WHERE {$where}";
+            
+            return $this->query($sql, $params);
+        } catch (PDOException $e) {
+            error_log("Update failed: " . $e->getMessage());
+            error_log("SQL: " . $sql);
+            error_log("Params: " . print_r($params, true));
+            throw new Exception("Lỗi cập nhật dữ liệu: " . $e->getMessage());
         }
-        
-        $sql = "UPDATE {$table} SET " . implode(', ', $fields) . " WHERE {$where}";
-        $params = array_merge($data, $whereParams);
-        
-        return $this->query($sql, $params);
     }
 
     /**

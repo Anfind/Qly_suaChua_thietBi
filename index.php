@@ -13,44 +13,68 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
     
+    // Lấy CSRF token trước khi clear session
+    $submitted_csrf = $_POST['csrf_token'] ?? '';
+    $session_csrf = $_SESSION['csrf_token'] ?? '';
+    
     if (empty($username) || empty($password)) {
         $error = 'Vui lòng nhập đầy đủ thông tin';
     } else {
         try {
-            $userModel = new User();
-            $user = $userModel->login($username, $password);
-            
-            if ($user) {
-                // Lưu thông tin user vào session
-                $_SESSION['user_id'] = $user['id'];
-                $_SESSION['username'] = $user['username'];
-                $_SESSION['role'] = $user['role_name'];
-                
-                // Log hoạt động
-                log_activity('Đăng nhập hệ thống');
-                
-                // Redirect theo role
-                switch ($user['role_name']) {
-                    case 'admin':
-                        redirect('dashboard.php', 'Chào mừng quản trị viên!', 'success');
-                        break;
-                    case 'requester':
-                        redirect('dashboard.php', 'Đăng nhập thành công!', 'success');
-                        break;
-                    case 'logistics':
-                        redirect('logistics/handover.php', 'Đăng nhập thành công!', 'success');
-                        break;
-                    case 'clerk':
-                        redirect('clerk/receive.php', 'Đăng nhập thành công!', 'success');
-                        break;
-                    case 'technician':
-                        redirect('repair/in-progress.php', 'Đăng nhập thành công!', 'success');
-                        break;
-                    default:
-                        redirect('dashboard.php', 'Đăng nhập thành công!', 'success');
+            // Kiểm tra CSRF token nếu có
+            if (!empty($submitted_csrf) && !empty($session_csrf)) {
+                if (!hash_equals($session_csrf, $submitted_csrf)) {
+                    $error = 'CSRF token không hợp lệ. Vui lòng thử lại.';
+                    // Tạo lại CSRF token
+                    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
                 }
-            } else {
-                $error = 'Tên đăng nhập hoặc mật khẩu không đúng';
+            }
+            
+            // Nếu không có lỗi CSRF, tiến hành login
+            if (empty($error)) {
+                // Clear session trước khi login
+                $old_csrf = $_SESSION['csrf_token'] ?? null;
+                session_unset();
+                session_regenerate_id(true);
+                
+                $userModel = new User();
+                $user = $userModel->login($username, $password);
+                
+                if ($user) {
+                    // Lưu thông tin user vào session
+                    $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['username'] = $user['username'];
+                    $_SESSION['role'] = $user['role_name'];
+                    $_SESSION['full_name'] = $user['full_name'];
+                    $_SESSION['login_time'] = time();
+                    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+                    
+                    // Log hoạt động
+                    log_activity('Đăng nhập hệ thống');
+                    
+                    // Redirect theo role - tất cả đều vào dashboard
+                    switch ($user['role_name']) {
+                        case 'admin':
+                            redirect('dashboard.php', 'Chào mừng quản trị viên!', 'success');
+                            break;
+                        case 'requester':
+                            redirect('dashboard.php', 'Đăng nhập thành công!', 'success');
+                            break;
+                        case 'logistics':
+                            redirect('dashboard.php', 'Chào mừng nhân viên giao liên!', 'success');
+                            break;
+                        case 'clerk':
+                            redirect('dashboard.php', 'Chào mừng văn thư!', 'success');
+                            break;
+                        case 'technician':
+                            redirect('dashboard.php', 'Chào mừng kỹ thuật viên!', 'success');
+                            break;
+                        default:
+                            redirect('dashboard.php', 'Đăng nhập thành công!', 'success');
+                    }
+                } else {
+                    $error = 'Tên đăng nhập hoặc mật khẩu không đúng';
+                }
             }
         } catch (Exception $e) {
             $error = 'Có lỗi xảy ra: ' . $e->getMessage();

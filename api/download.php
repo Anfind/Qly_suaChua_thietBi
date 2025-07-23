@@ -2,7 +2,7 @@
 /**
  * Download handler cho export files
  */
-require_once '../config/config.php';
+require_once __DIR__ . '/../config/config.php';
 require_login();
 
 try {

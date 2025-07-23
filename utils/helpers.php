@@ -70,7 +70,7 @@ function get_flash_messages() {
  * Kiểm tra user đã đăng nhập
  */
 function is_logged_in() {
-    return isset($_SESSION['user_id']);
+    return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']) && is_numeric($_SESSION['user_id']);
 }
 
 /**
@@ -81,8 +81,7 @@ function current_user() {
         return null;
     }
     
-    static $user = null;
-    if ($user === null) {
+    try {
         $db = Database::getInstance();
         $user = $db->fetch(
             "SELECT u.*, r.name as role_name, r.display_name as role_display_name, 
@@ -90,12 +89,21 @@ function current_user() {
              FROM users u 
              LEFT JOIN roles r ON u.role_id = r.id 
              LEFT JOIN departments d ON u.department_id = d.id 
-             WHERE u.id = ?",
+             WHERE u.id = ? AND u.status = 'active'",
             [$_SESSION['user_id']]
         );
+        
+        if (!$user) {
+            // Nếu user không tồn tại hoặc bị vô hiệu hóa, xóa session
+            session_destroy();
+            return null;
+        }
+        
+        return $user;
+    } catch (Exception $e) {
+        error_log("Error in current_user(): " . $e->getMessage());
+        return null;
     }
-    
-    return $user;
 }
 
 /**
@@ -149,15 +157,25 @@ function require_any_role($roles) {
  * Tạo CSRF token field
  */
 function csrf_field() {
-    return '<input type="hidden" name="' . CSRF_TOKEN_NAME . '" value="' . $_SESSION['csrf_token'] . '">';
+    // Đảm bảo csrf_token tồn tại trong session
+    if (!isset($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return '<input type="hidden" name="csrf_token" value="' . $_SESSION['csrf_token'] . '">';
 }
 
 /**
  * Verify CSRF token
  */
 function verify_csrf() {
-    if (!isset($_POST[CSRF_TOKEN_NAME]) || 
-        !hash_equals($_SESSION['csrf_token'], $_POST[CSRF_TOKEN_NAME])) {
+    // Đảm bảo csrf_token tồn tại trong session
+    if (!isset($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        die('CSRF token not found in session');
+    }
+    
+    if (!isset($_POST['csrf_token']) || 
+        !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         die('CSRF token mismatch');
     }
 }

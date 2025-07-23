@@ -41,14 +41,6 @@ define('SESSION_TIMEOUT', 3600); // 1 giờ
 // Cấu hình phân trang
 define('ITEMS_PER_PAGE', 20);
 
-// Cấu hình email (nếu cần)
-define('SMTP_HOST', 'smtp.gmail.com');
-define('SMTP_PORT', 587);
-define('SMTP_USERNAME', '');
-define('SMTP_PASSWORD', '');
-define('FROM_EMAIL', 'noreply@company.com');
-define('FROM_NAME', APP_NAME);
-
 // Cấu hình debug
 define('DEBUG_MODE', true);
 define('LOG_ERRORS', true);

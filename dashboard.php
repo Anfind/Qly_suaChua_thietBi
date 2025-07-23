@@ -2,18 +2,8 @@
 require_once 'config/config.php';
 require_login();
 
-$title = 'Dashboard'    $recent_requests = $db->fetchAll(
-        "SELECT r.request_code, r.created_at, e.name as equipment_name,
-                u.full_name as requester_name, s.name as status_name, s.color as status_color,
-                s.icon as status_icon, r.urgency_level
-         FROM repair_requests r
-         LEFT JOIN equipments e ON r.equipment_id = e.id
-         LEFT JOIN users u ON r.requester_id = u.id
-         LEFT JOIN repair_statuses s ON r.current_status_id = s.id
-         WHERE $condition
-         ORDER BY r.created_at DESC
-         LIMIT 5"
-    );current_user();
+$title = 'Dashboard';
+$user = current_user();
 
 // Lấy thống kê tổng quan
 $db = Database::getInstance();
@@ -299,7 +289,7 @@ ob_start();
                         Đơn cần xử lý
                     <?php endif; ?>
                 </h5>
-                <a href="<?= url('requests/index.php') ?>" class="btn btn-sm btn-outline-primary">
+                <a href="<?= url('repairs/index.php') ?>" class="btn btn-sm btn-outline-primary">
                     Xem tất cả
                 </a>
             </div>
@@ -309,7 +299,7 @@ ob_start();
                         <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                         <p class="text-muted">Chưa có đơn nào</p>
                         <?php if (has_role('requester')): ?>
-                            <a href="<?= url('requests/create.php') ?>" class="btn btn-primary">
+                            <a href="<?= url('repairs/create.php') ?>" class="btn btn-primary">
                                 <i class="fas fa-plus me-2"></i>Tạo đơn mới
                             </a>
                         <?php endif; ?>
@@ -363,13 +353,13 @@ ob_start();
                 <div class="row">
                     <?php if (has_role('requester')): ?>
                         <div class="col-md-3 mb-3">
-                            <a href="<?= url('requests/create.php') ?>" class="btn btn-primary w-100 py-3">
+                            <a href="<?= url('repairs/create.php') ?>" class="btn btn-primary w-100 py-3">
                                 <i class="fas fa-plus-circle fa-2x d-block mb-2"></i>
                                 Tạo đề xuất sửa chữa
                             </a>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <a href="<?= url('requests/my-requests.php') ?>" class="btn btn-outline-primary w-100 py-3">
+                            <a href="<?= url('repairs/index.php') ?>" class="btn btn-outline-primary w-100 py-3">
                                 <i class="fas fa-list-alt fa-2x d-block mb-2"></i>
                                 Xem đơn của tôi
                             </a>

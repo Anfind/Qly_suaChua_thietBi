@@ -115,18 +115,31 @@ function create_thumbnail($sourcePath, $destinationPath, $width = 150, $height =
 }
 
 /**
- * Send email notification (basic implementation)
+ * Send email notification (disabled - chỉ log)
  */
 function send_notification($to, $subject, $message, $data = []) {
-    if (!SMTP_HOST || !SMTP_USERNAME) {
-        // Log instead of sending if email not configured
-        error_log("Email notification: To: $to, Subject: $subject, Message: $message");
-        return true;
+    // Chỉ log thay vì gửi email thực
+    $logMessage = sprintf(
+        "[NOTIFICATION] %s | To: %s | Subject: %s | Message: %s",
+        date('Y-m-d H:i:s'),
+        $to,
+        $subject,
+        strip_tags($message)
+    );
+    
+    error_log($logMessage, 3, 'logs/notifications.log');
+    
+    // Lưu vào session để hiển thị
+    if (!isset($_SESSION['notifications'])) {
+        $_SESSION['notifications'] = [];
     }
     
-    // TODO: Implement actual email sending using PHPMailer or similar
-    // For now, just log the notification
-    error_log("Email notification queued: To: $to, Subject: $subject");
+    $_SESSION['notifications'][] = [
+        'type' => 'info',
+        'message' => "Thông báo email đã được ghi log: $subject",
+        'time' => date('Y-m-d H:i:s')
+    ];
+    
     return true;
 }
 
@@ -175,7 +188,7 @@ function notify_status_change($requestId, $newStatus, $userId) {
         $message .= "Trân trọng,\n";
         $message .= APP_NAME;
         
-        return send_notification($request['requester_email'], $subject, $message);
+        return send_notification($request['requester_email'] ?? 'system', $subject, $message);
         
     } catch (Exception $e) {
         error_log("Error sending status notification: " . $e->getMessage());

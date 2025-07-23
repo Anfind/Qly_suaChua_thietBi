@@ -2,7 +2,7 @@
 /**
  * Ajax handler cho export functions
  */
-require_once '../config/config.php';
+require_once __DIR__ . '/../config/config.php';
 require_any_role(['admin', 'clerk']);
 
 header('Content-Type: application/json');
