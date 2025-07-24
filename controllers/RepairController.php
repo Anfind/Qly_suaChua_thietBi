@@ -204,6 +204,13 @@ class RepairController {
                 $new_status = $_POST['new_status'];
                 $notes = $_POST['notes'] ?? '';
                 $user_id = current_user()['id'];
+                $user_role = current_user()['role_name'] ?? '';
+                
+                // Kiểm tra quyền cập nhật trạng thái
+                $allowed_roles = ['admin', 'clerk', 'technician', 'logistics'];
+                if (!in_array($user_role, $allowed_roles)) {
+                    throw new Exception('Bạn không có quyền thực hiện hành động này');
+                }
                 
                 // Xử lý attachments nếu có
                 $attachments = [];
@@ -364,6 +371,68 @@ class RepairController {
         header('Content-Type: application/json');
         echo json_encode($results);
         exit;
+    }
+    
+    /**
+     * Xác nhận bàn giao thiết bị (Logistics)
+     */
+    public function confirmHandover() {
+        try {
+            // Kiểm tra quyền trực tiếp
+            $user = current_user();
+            if (!$user || !in_array($user['role_name'], ['logistics', 'admin'])) {
+                throw new Exception('Bạn không có quyền thực hiện hành động này');
+            }
+            
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                verify_csrf();
+                
+                $request_id = $_POST['request_id'];
+                $notes = $_POST['notes'] ?? '';
+                $user_id = current_user()['id'];
+                
+                // Cập nhật trạng thái thành "HANDED_TO_CLERK"
+                $this->repairModel->updateStatus($request_id, 'HANDED_TO_CLERK', $user_id, $notes);
+                
+                $request = $this->repairModel->getById($request_id);
+                redirect('logistics/index.php', 
+                    'Đã xác nhận bàn giao đơn ' . $request['request_code'], 'success');
+                
+            } else {
+                throw new Exception('Phương thức không hợp lệ');
+            }
+        } catch (Exception $e) {
+            redirect($_SERVER['HTTP_REFERER'] ?? 'logistics/index.php', 
+                'Lỗi: ' . $e->getMessage(), 'error');
+        }
+    }
+    
+    /**
+     * Xác nhận trả thiết bị (Logistics)
+     */
+    public function confirmReturn() {
+        require_any_role(['logistics', 'admin']);
+        
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            try {
+                verify_csrf();
+                
+                $request_id = $_POST['request_id'];
+                $notes = $_POST['notes'] ?? '';
+                $user_id = current_user()['id'];
+                
+                // Cập nhật trạng thái thành "COMPLETED"
+                $this->repairModel->updateStatus($request_id, 'COMPLETED', $user_id, $notes);
+                
+                $request = $this->repairModel->getById($request_id);
+                redirect('logistics/index.php', 
+                    'Đã xác nhận trả thiết bị đơn ' . $request['request_code'], 'success');
+                
+            } catch (Exception $e) {
+                redirect($_SERVER['HTTP_REFERER'] ?? 'logistics/index.php', 
+                    'Lỗi: ' . $e->getMessage(), 'error');
+            }
+        }
     }
 }
 ?>

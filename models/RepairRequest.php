@@ -355,6 +355,11 @@ class RepairRequest {
         $user = (new User())->getById($user_id);
         $role = $user['role_name'];
         
+        // Admin có thể thực hiện mọi chuyển đổi trạng thái
+        if ($role === 'admin') {
+            return;
+        }
+        
         $allowed_transitions = [
             'PENDING_HANDOVER' => ['logistics' => ['HANDED_TO_CLERK', 'CANCELLED']],
             'HANDED_TO_CLERK' => ['clerk' => ['SENT_TO_REPAIR', 'CANCELLED']],

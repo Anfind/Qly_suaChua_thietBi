@@ -4,7 +4,7 @@ require_role('logistics');
 
 $title = 'Giao liên - Dashboard';
 $controller = new RepairController();
-$data = $controller->dashboard();
+$data = $controller->logisticsDashboard(); // Sửa từ index() thành logisticsDashboard()
 
 $pendingHandover = $data['pendingHandover'] ?? [];
 $readyForReturn = $data['readyForReturn'] ?? [];

@@ -4,3 +4,25 @@
 [23-Jul-2025 11:02:32 Asia/Ho_Chi_Minh] PHP Warning:  session_regenerate_id(): Session ID cannot be regenerated after headers have already been sent in D:\An\Qly_suaChua_thietBi\test_csrf_logic.php on line 13
 [23-Jul-2025 11:02:32 Asia/Ho_Chi_Minh] PHP Warning:  session_regenerate_id(): Session ID cannot be regenerated after headers have already been sent in D:\An\Qly_suaChua_thietBi\test_csrf_logic.php on line 38
 [23-Jul-2025 11:02:32 Asia/Ho_Chi_Minh] PHP Warning:  session_regenerate_id(): Session ID cannot be regenerated after headers have already been sent in D:\An\Qly_suaChua_thietBi\test_csrf_logic.php on line 83
+[24-Jul-2025 01:38:24 Asia/Ho_Chi_Minh] Query failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'is_active' in 'field list'
+[24-Jul-2025 01:38:24 Asia/Ho_Chi_Minh] SQL: INSERT INTO users (username, password, full_name, email, phone, role_id, department_id, is_active, created_at) VALUES (:username, :password, :full_name, :email, :phone, :role_id, :department_id, :is_active, :created_at)
+[24-Jul-2025 01:38:24 Asia/Ho_Chi_Minh] Params: Array
+(
+    [username] => logistics
+    [password] => logistics123
+    [full_name] => Nhân viên Giao liên
+    [email] => logistics@company.com
+    [phone] => 0987654321
+    [role_id] => 2
+    [department_id] => 3
+    [is_active] => 1
+    [created_at] => 2025-07-24 01:38:24
+)
+
+[24-Jul-2025 01:38:24 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Exception: Lỗi thực thi truy vấn cơ sở dữ liệu: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'is_active' in 'field list' in D:\An\Qly_suaChua_thietBi\config\Database.php:60
+Stack trace:
+#0 D:\An\Qly_suaChua_thietBi\config\Database.php(88): Database->query('INSERT INTO use...', Array)
+#1 D:\An\Qly_suaChua_thietBi\create_logistics_user.php(40): Database->insert('users', Array)
+#2 {main}
+  thrown in D:\An\Qly_suaChua_thietBi\config\Database.php on line 60
+[24-Jul-2025 01:39:23 Asia/Ho_Chi_Minh] PHP Warning:  Undefined array key "is_active" in D:\An\Qly_suaChua_thietBi\debug_logistics.php on line 22

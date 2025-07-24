@@ -238,18 +238,18 @@ ob_start();
                 <div class="card-header bg-warning text-white">
                     <h5 class="card-title mb-0">
                         <i class="fas fa-clock me-2"></i>
-                        Chờ bàn giao (<?= count($data['pending']) ?>)
+                        Chờ bàn giao (<?= count($data['pendingHandover'] ?? []) ?>)
                     </h5>
                 </div>
                 <div class="card-body p-0">
-                    <?php if (empty($data['pending'])): ?>
+                    <?php if (empty($data['pendingHandover'] ?? [])): ?>
                         <div class="text-center py-4">
                             <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
                             <p class="text-muted mb-0">Không có đơn nào chờ bàn giao</p>
                         </div>
                     <?php else: ?>
                         <div class="list-group list-group-flush">
-                            <?php foreach ($data['pending'] as $request): ?>
+                            <?php foreach (($data['pendingHandover'] ?? []) as $request): ?>
                                 <div class="list-group-item">
                                     <div class="d-flex justify-content-between align-items-start">
                                         <div class="ms-2 me-auto">
@@ -282,18 +282,18 @@ ob_start();
                 <div class="card-header bg-purple text-white">
                     <h5 class="card-title mb-0">
                         <i class="fas fa-undo me-2"></i>
-                        Đã thu hồi - Chờ trả lại (<?= count($data['retrieved']) ?>)
+                        Đã thu hồi - Chờ trả lại (<?= count($data['readyForReturn'] ?? []) ?>)
                     </h5>
                 </div>
                 <div class="card-body p-0">
-                    <?php if (empty($data['retrieved'])): ?>
+                    <?php if (empty($data['readyForReturn'] ?? [])): ?>
                         <div class="text-center py-4">
                             <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
                             <p class="text-muted mb-0">Không có đơn nào chờ trả lại</p>
                         </div>
                     <?php else: ?>
                         <div class="list-group list-group-flush">
-                            <?php foreach ($data['retrieved'] as $request): ?>
+                            <?php foreach (($data['readyForReturn'] ?? []) as $request): ?>
                                 <div class="list-group-item">
                                     <div class="d-flex justify-content-between align-items-start">
                                         <div class="ms-2 me-auto">

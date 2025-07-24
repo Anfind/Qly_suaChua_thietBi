@@ -1,5 +1,13 @@
 <?php
 require_once __DIR__ . '/../config/config.php';
+
+// Debug user role trước khi require_role
+$current_user = current_user();
+error_log("=== HANDOVER PAGE LOAD DEBUG ===");
+error_log("Current user: " . print_r($current_user, true));
+error_log("User role_name: " . ($current_user['role_name'] ?? 'NULL'));
+error_log("================================");
+
 require_role('logistics');
 
 $controller = new RepairController();
@@ -17,20 +25,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $notes = $_POST['notes'] ?? '';
         $condition_check = $_POST['condition_check'] ?? '';
         
-        // Cập nhật trạng thái
-        $result = $controller->updateStatus();
-        if ($result) {
-            $success = 'Bàn giao thiết bị thành công!';
-            
-            // Ghi log hoạt động
-            log_activity('logistics_handover', "Bàn giao thiết bị cho đơn ID: $request_id", $request_id);
-            
-            // Redirect về trang danh sách
-            header('Location: index.php?success=' . urlencode($success));
-            exit;
-        } else {
-            $error = 'Có lỗi xảy ra khi bàn giao thiết bị!';
+        // Kiểm tra quyền user hiện tại
+        $user = current_user();
+        
+        // Debug log
+        error_log("=== HANDOVER DEBUG ===");
+        error_log("User data: " . print_r($user, true));
+        error_log("User role_name: " . ($user['role_name'] ?? 'NULL'));
+        error_log("Is logistics: " . (in_array($user['role_name'] ?? '', ['logistics']) ? 'YES' : 'NO'));
+        error_log("Is admin: " . (in_array($user['role_name'] ?? '', ['admin']) ? 'YES' : 'NO'));
+        error_log("=====================");
+        
+        if (!$user || !in_array($user['role_name'], ['logistics', 'admin'])) {
+            $error_detail = sprintf(
+                'Bạn không có quyền thực hiện hành động này. User: %s, Role: %s', 
+                $user['username'] ?? 'NULL',
+                $user['role_name'] ?? 'NULL'
+            );
+            error_log("Permission denied: " . $error_detail);
+            throw new Exception($error_detail);
         }
+        
+        // Cập nhật trạng thái trực tiếp thay vì gọi controller
+        $db = Database::getInstance();
+        
+        // Thêm ghi chú về condition_check vào notes
+        $full_notes = $notes;
+        if ($condition_check) {
+            $condition_text = [
+                'good' => 'Tình trạng tốt, đúng như mô tả',
+                'different' => 'Có khác biệt so với mô tả', 
+                'problem' => 'Có vấn đề nghiêm trọng'
+            ][$condition_check] ?? $condition_check;
+            
+            $full_notes = "Kiểm tra thiết bị: " . $condition_text . 
+                         ($notes ? "\nGhi chú: " . $notes : "");
+        }
+        
+        // Cập nhật trạng thái thành "HANDED_TO_CLERK"
+        $result = $db->query(
+            "UPDATE repair_requests SET current_status_id = (SELECT id FROM repair_statuses WHERE code = 'HANDED_TO_CLERK'), updated_at = NOW() WHERE id = ?",
+            [$request_id]
+        );
+        
+        // Thêm vào lịch sử trạng thái
+        $db->insert('repair_status_history', [
+            'request_id' => $request_id,
+            'status_id' => $db->fetch("SELECT id FROM repair_statuses WHERE code = 'HANDED_TO_CLERK'")['id'],
+            'user_id' => $user['id'],
+            'notes' => $full_notes,
+            'created_at' => date('Y-m-d H:i:s')
+        ]);
+        
+        // Log activity
+        log_activity('handover_equipment', [
+            'request_id' => $request_id,
+            'condition_check' => $condition_check,
+            'notes' => $notes
+        ]);
+        
+        $success = 'Đã xác nhận bàn giao thành công';
+        
     } catch (Exception $e) {
         $error = $e->getMessage();
     }
@@ -142,7 +197,7 @@ ob_start();
                 <div class="col-12">
                     <h6>Mô tả sự cố</h6>
                     <div class="p-3 bg-light rounded">
-                        <?= nl2br(e($request['issue_description'])) ?>
+                        <?= nl2br(e($request['problem_description'] ?? '')) ?>
                     </div>
                 </div>
             </div>
@@ -150,7 +205,6 @@ ob_start();
             <form method="POST">
                 <?= csrf_field() ?>
                 <input type="hidden" name="request_id" value="<?= $request['id'] ?>">
-                <input type="hidden" name="new_status" value="HANDED_TO_CLERK">
                 
                 <div class="mb-3">
                     <label class="form-label">Kiểm tra tình trạng thiết bị</label>

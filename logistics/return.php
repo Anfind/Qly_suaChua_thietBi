@@ -17,20 +17,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $notes = $_POST['notes'] ?? '';
         $return_condition = $_POST['return_condition'] ?? '';
         
-        // Cập nhật trạng thái
-        $result = $controller->updateStatus();
-        if ($result) {
-            $success = 'Trả lại thiết bị thành công! Quy trình hoàn tất.';
-            
-            // Ghi log hoạt động
-            log_activity('logistics_return', "Trả lại thiết bị cho đơn ID: $request_id", $request_id);
-            
-            // Redirect về trang danh sách
-            header('Location: index.php?success=' . urlencode($success));
-            exit;
-        } else {
-            $error = 'Có lỗi xảy ra khi trả lại thiết bị!';
-        }
+        // Gọi controller method confirmReturn
+        $controller->confirmReturn();
+        
     } catch (Exception $e) {
         $error = $e->getMessage();
     }
