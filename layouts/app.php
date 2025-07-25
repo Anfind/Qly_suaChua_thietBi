@@ -478,17 +478,17 @@
                 <?php endif; ?>
                 
                 <?php if (has_role('clerk')): ?>
-                <a href="<?= url('clerk/receive.php') ?>" class="nav-link <?= $current_page === 'receive' ? 'active' : '' ?>">
-                    <i class="fas fa-inbox"></i>
-                    Tiếp nhận
+                <a href="<?= url('clerk/index.php') ?>" class="nav-link <?= $current_page === 'index' && strpos($_SERVER['REQUEST_URI'], 'clerk') ? 'active' : '' ?>">
+                    <i class="fas fa-file-signature"></i>
+                    Công việc văn thư
                 </a>
-                <a href="<?= url('clerk/transfer.php') ?>" class="nav-link <?= $current_page === 'transfer' ? 'active' : '' ?>">
+                <a href="<?= url('clerk/send.php') ?>" class="nav-link <?= $current_page === 'send' ? 'active' : '' ?>">
                     <i class="fas fa-shipping-fast"></i>
                     Chuyển sửa chữa
                 </a>
                 <a href="<?= url('clerk/retrieve.php') ?>" class="nav-link <?= $current_page === 'retrieve' ? 'active' : '' ?>">
-                    <i class="fas fa-clipboard-check"></i>
-                    Thu hồi
+                    <i class="fas fa-undo"></i>
+                    Thu hồi thiết bị
                 </a>
                 <?php endif; ?>
                 

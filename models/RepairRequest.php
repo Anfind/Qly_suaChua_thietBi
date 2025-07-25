@@ -174,6 +174,11 @@ class RepairRequest {
             $params[] = $filters['urgency_level'];
         }
         
+        if (!empty($filters['technician_id'])) {
+            $where[] = "r.assigned_technician_id = ?";
+            $params[] = $filters['technician_id'];
+        }
+        
         $sql = "SELECT r.*, e.name as equipment_name, e.code as equipment_code,
                        u.full_name as requester_name, d.name as department_name,
                        s.name as status_name, s.color as status_color, s.icon as status_icon,

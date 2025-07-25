@@ -78,8 +78,9 @@ class RepairController {
      * Dashboard kỹ thuật
      */
     private function technicianDashboard() {
-        $sent = $this->repairModel->getByStatus('SENT_TO_REPAIR');
-        $inProgress = $this->repairModel->getByStatus('IN_PROGRESS');
+        $user = current_user();
+        $sent = $this->repairModel->getByStatus('SENT_TO_REPAIR', ['technician_id' => $user['id']]);
+        $inProgress = $this->repairModel->getByStatus('IN_PROGRESS', ['technician_id' => $user['id']]);
         
         return compact('sent', 'inProgress');
     }

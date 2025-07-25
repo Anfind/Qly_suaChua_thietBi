@@ -17,8 +17,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $notes = $_POST['notes'] ?? '';
         $return_condition = $_POST['return_condition'] ?? '';
         
-        // Gọi controller method confirmReturn
-        $controller->confirmReturn();
+        // Kiểm tra quyền user hiện tại
+        $user = current_user();
+        
+        if (!$user || !in_array($user['role_name'], ['logistics', 'admin'])) {
+            throw new Exception('Chỉ giao liên và admin mới có quyền trả lại thiết bị');
+        }
+        
+        // Thêm thông tin về tình trạng trả lại vào notes
+        $full_notes = $notes;
+        if ($return_condition) {
+            $condition_text = [
+                'excellent' => 'Tình trạng xuất sắc',
+                'good' => 'Tình trạng tốt',
+                'acceptable' => 'Tình trạng chấp nhận được',
+                'damaged' => 'Có hư hỏng'
+            ][$return_condition] ?? $return_condition;
+            
+            $full_notes = "Tình trạng khi trả lại: " . $condition_text . 
+                         ($notes ? "\nGhi chú: " . $notes : "");
+        }
+        
+        // Cập nhật trạng thái thành "COMPLETED"
+        $result = $db->query(
+            "UPDATE repair_requests SET 
+                current_status_id = (SELECT id FROM repair_statuses WHERE code = 'COMPLETED'), 
+                updated_at = NOW(), 
+                actual_completion = NOW()
+             WHERE id = ?",
+            [$request_id]
+        );
+        
+        // Thêm vào lịch sử trạng thái
+        $db->insert('repair_status_history', [
+            'request_id' => $request_id,
+            'status_id' => $db->fetch("SELECT id FROM repair_statuses WHERE code = 'COMPLETED'")['id'],
+            'user_id' => $user['id'],
+            'notes' => $full_notes,
+            'created_at' => date('Y-m-d H:i:s')
+        ]);
+        
+        // Log activity
+        log_activity('return_equipment', [
+            'request_id' => $request_id,
+            'return_condition' => $return_condition,
+            'notes' => $notes
+        ]);
+        
+        $request = $db->fetch("SELECT request_code FROM repair_requests WHERE id = ?", [$request_id]);
+        redirect('index.php', 'Đã trả lại thiết bị đơn ' . $request['request_code'] . ' thành công', 'success');
         
     } catch (Exception $e) {
         $error = $e->getMessage();
@@ -178,23 +225,29 @@ ob_start();
                 <input type="hidden" name="new_status" value="COMPLETED">
                 
                 <div class="mb-3">
-                    <label class="form-label">Tình trạng thiết bị khi trả lại</label>
+                    <label class="form-label">Tình trạng thiết bị khi trả lại <span class="text-danger">*</span></label>
                     <div class="form-check">
-                        <input class="form-check-input" type="radio" name="return_condition" id="condition_fixed" value="fixed" required>
-                        <label class="form-check-label" for="condition_fixed">
-                            <i class="fas fa-check-circle text-success me-1"></i>Đã sửa xong, hoạt động bình thường
+                        <input class="form-check-input" type="radio" name="return_condition" id="excellent" value="excellent" required>
+                        <label class="form-check-label" for="excellent">
+                            <i class="fas fa-star text-warning me-1"></i>Xuất sắc - Như mới
                         </label>
                     </div>
                     <div class="form-check">
-                        <input class="form-check-input" type="radio" name="return_condition" id="condition_partial" value="partial" required>
-                        <label class="form-check-label" for="condition_partial">
-                            <i class="fas fa-exclamation-triangle text-warning me-1"></i>Sửa được một phần, còn một số vấn đề nhỏ
+                        <input class="form-check-input" type="radio" name="return_condition" id="good" value="good">
+                        <label class="form-check-label" for="good">
+                            <i class="fas fa-check-circle text-success me-1"></i>Tốt - Hoạt động bình thường
                         </label>
                     </div>
                     <div class="form-check">
-                        <input class="form-check-input" type="radio" name="return_condition" id="condition_unfixable" value="unfixable" required>
-                        <label class="form-check-label" for="condition_unfixable">
-                            <i class="fas fa-times-circle text-danger me-1"></i>Không thể sửa được
+                        <input class="form-check-input" type="radio" name="return_condition" id="acceptable" value="acceptable">
+                        <label class="form-check-label" for="acceptable">
+                            <i class="fas fa-exclamation-triangle text-warning me-1"></i>Chấp nhận được - Còn vấn đề nhỏ
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="return_condition" id="damaged" value="damaged">
+                        <label class="form-check-label" for="damaged">
+                            <i class="fas fa-times-circle text-danger me-1"></i>Có hư hỏng - Không thể sửa được
                         </label>
                     </div>
                 </div>
@@ -206,14 +259,48 @@ ob_start();
                 </div>
                 
                 <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-success">
+                    <button type="submit" class="btn btn-success" id="submit-btn">
                         <i class="fas fa-check me-1"></i>Xác nhận trả lại & Hoàn tất
                     </button>
-                    <a href="index.php" class="btn btn-secondary">Hủy</a>
+                    <a href="index.php" class="btn btn-secondary">
+                        <i class="fas fa-times me-1"></i>Hủy
+                    </a>
                 </div>
             </form>
         </div>
     </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const submitBtn = document.getElementById('submit-btn');
+    
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const returnCondition = document.querySelector('input[name="return_condition"]:checked');
+            
+            if (!returnCondition) {
+                alert('Vui lòng chọn tình trạng thiết bị khi trả lại');
+                e.preventDefault();
+                return false;
+            }
+            
+            // Confirm before submit
+            const conditionText = returnCondition.nextElementSibling.textContent.trim();
+            const confirmMsg = `Xác nhận trả lại thiết bị với tình trạng:\n\n${conditionText}\n\nSau khi xác nhận, đơn sẽ được hoàn tất. Bạn có chắc chắn muốn tiếp tục?`;
+            
+            if (!confirm(confirmMsg)) {
+                e.preventDefault();
+                return false;
+            }
+            
+            // Disable submit button to prevent double submission
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Đang xử lý...';
+        });
+    }
+});
+</script>
 <?php else: ?>
     <!-- Danh sách đơn sẵn sàng trả lại -->
     <div class="card">

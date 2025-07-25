@@ -22,6 +22,23 @@ $breadcrumbs = [
 $images = json_decode($request['images'] ?? '[]', true);
 $videos = json_decode($request['videos'] ?? '[]', true);
 
+// Đếm tổng số file đính kèm
+$attachmentSummary = get_request_attachments_summary($request['id']);
+$totalAttachments = $attachmentSummary['total'];
+
+// Lấy thông tin workflow steps nếu có
+$db = Database::getInstance();
+$workflowSteps = $db->fetchAll(
+    "SELECT rws.*, d.name as department_name, d.code as department_code,
+            u.full_name as technician_name, u.username as technician_username
+     FROM repair_workflow_steps rws
+     LEFT JOIN departments d ON rws.assigned_department_id = d.id
+     LEFT JOIN users u ON rws.assigned_technician_id = u.id
+     WHERE rws.request_id = ?
+     ORDER BY rws.step_order",
+    [$request['id']]
+);
+
 // Check permissions for actions
 $canUpdateStatus = false;
 $allowedNextStatuses = [];
@@ -96,11 +113,23 @@ ob_start();
             </button>
         <?php endif; ?>
         
+        <!-- Xem file đính kèm -->
+        <a href="<?= url('repairs/attachments.php?code=' . $request['request_code']) ?>" class="btn btn-outline-info me-2">
+            <i class="fas fa-paperclip me-2"></i>File đính kèm 
+            <?php if ($totalAttachments > 0): ?>
+                <span class="badge bg-info ms-1"><?= $totalAttachments ?></span>
+            <?php endif; ?>
+        </a>
+        
         <div class="btn-group">
             <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
                 <i class="fas fa-ellipsis-h"></i>
             </button>
             <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="<?= url('repairs/attachments.php?code=' . $request['request_code']) ?>">
+                    <i class="fas fa-paperclip me-2"></i>Xem tất cả file đính kèm
+                </a></li>
+                <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="#" onclick="window.print()">
                     <i class="fas fa-print me-2"></i>In đơn
                 </a></li>
@@ -181,9 +210,18 @@ ob_start();
                 <!-- Images and videos -->
                 <?php if (!empty($images) || !empty($videos)): ?>
                     <hr>
-                    <h6 class="text-primary mb-3">
-                        <i class="fas fa-paperclip me-1"></i>Tệp đính kèm
-                    </h6>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-primary mb-0">
+                            <i class="fas fa-paperclip me-1"></i>Tệp đính kèm 
+                            <span class="badge bg-primary ms-1"><?= count($images) + count($videos) ?></span>
+                        </h6>
+                        <a href="<?= url('repairs/attachments.php?code=' . $request['request_code']) ?>" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-external-link-alt me-1"></i>Xem tất cả 
+                            <?php if ($totalAttachments > 0): ?>
+                                <span class="badge bg-primary ms-1"><?= $totalAttachments ?></span>
+                            <?php endif; ?>
+                        </a>
+                    </div>
                     
                     <?php if (!empty($images)): ?>
                         <h6 class="mb-2">Hình ảnh:</h6>
@@ -215,6 +253,100 @@ ob_start();
                 <?php endif; ?>
             </div>
         </div>
+        
+        <!-- Workflow steps (if exists) -->
+        <?php if (!empty($workflowSteps)): ?>
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-project-diagram me-2"></i>
+                        Quy trình sửa chữa đa phòng ban
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <?php foreach ($workflowSteps as $index => $step): ?>
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card border-<?= $step['status'] === 'completed' ? 'success' : ($step['status'] === 'in_progress' ? 'warning' : 'secondary') ?>">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="badge bg-primary">Bước <?= $step['step_order'] ?></span>
+                                            <span class="badge bg-<?= $step['status'] === 'completed' ? 'success' : ($step['status'] === 'in_progress' ? 'warning' : 'secondary') ?>">
+                                                <?php
+                                                $statusText = [
+                                                    'pending' => 'Chờ thực hiện',
+                                                    'in_progress' => 'Đang thực hiện', 
+                                                    'completed' => 'Đã hoàn thành',
+                                                    'skipped' => 'Bỏ qua'
+                                                ][$step['status']] ?? 'Không xác định';
+                                                echo $statusText;
+                                                ?>
+                                            </span>
+                                        </div>
+                                        
+                                        <h6 class="card-title mb-2"><?= e($step['department_name']) ?></h6>
+                                        <p class="card-text text-muted mb-2">
+                                            <small><?= e($step['department_code']) ?></small>
+                                        </p>
+                                        
+                                        <?php if ($step['technician_name']): ?>
+                                            <p class="card-text mb-2">
+                                                <i class="fas fa-user me-1"></i>
+                                                <small><?= e($step['technician_name']) ?></small>
+                                            </p>
+                                        <?php endif; ?>
+                                        
+                                        <?php if ($step['started_at']): ?>
+                                            <p class="card-text mb-1">
+                                                <i class="fas fa-play me-1"></i>
+                                                <small>Bắt đầu: <?= date('d/m/Y H:i', strtotime($step['started_at'])) ?></small>
+                                            </p>
+                                        <?php endif; ?>
+                                        
+                                        <?php if ($step['completed_at']): ?>
+                                            <p class="card-text mb-1">
+                                                <i class="fas fa-check me-1"></i>
+                                                <small>Hoàn thành: <?= date('d/m/Y H:i', strtotime($step['completed_at'])) ?></small>
+                                            </p>
+                                        <?php endif; ?>
+                                        
+                                        <?php if ($step['notes']): ?>
+                                            <p class="card-text">
+                                                <i class="fas fa-comment me-1"></i>
+                                                <small><?= nl2br(e($step['notes'])) ?></small>
+                                            </p>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    
+                    <!-- Progress indicator -->
+                    <div class="mt-3">
+                        <h6>Tiến độ tổng thể:</h6>
+                        <div class="progress">
+                            <?php
+                            $completedSteps = array_filter($workflowSteps, function($step) {
+                                return $step['status'] === 'completed';
+                            });
+                            $totalSteps = count($workflowSteps);
+                            $progressPercent = $totalSteps > 0 ? (count($completedSteps) / $totalSteps) * 100 : 0;
+                            ?>
+                            <div class="progress-bar bg-success" role="progressbar" 
+                                 style="width: <?= $progressPercent ?>%" 
+                                 aria-valuenow="<?= $progressPercent ?>" 
+                                 aria-valuemin="0" aria-valuemax="100">
+                                <?= round($progressPercent) ?>%
+                            </div>
+                        </div>
+                        <small class="text-muted">
+                            <?= count($completedSteps) ?>/<?= $totalSteps ?> bước đã hoàn thành
+                        </small>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
         
         <!-- Repair details (for technicians) -->
         <?php if (!empty($repairDetails) || has_any_role(['technician', 'admin'])): ?>
