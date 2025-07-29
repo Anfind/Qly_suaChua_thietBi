@@ -123,8 +123,8 @@ ob_start();
                     <form method="GET" class="d-flex gap-2">
                         <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
                             <option value="">Tất cả trạng thái</option>
-                            <option value="PENDING_HANDOVER" <?= ($_GET['status'] ?? '') === 'PENDING_HANDOVER' ? 'selected' : '' ?>>Chờ bàn giao</option>
-                            <option value="HANDED_TO_CLERK" <?= ($_GET['status'] ?? '') === 'HANDED_TO_CLERK' ? 'selected' : '' ?>>Đã bàn giao cho văn thư</option>
+                            <option value="PENDING_HANDOVER" <?= ($_GET['status'] ?? '') === 'PENDING_HANDOVER' ? 'selected' : '' ?>><?= format_status_display('Chờ bàn giao') ?></option>
+                            <option value="HANDED_TO_CLERK" <?= ($_GET['status'] ?? '') === 'HANDED_TO_CLERK' ? 'selected' : '' ?>><?= format_status_display('Đã bàn giao cho văn thư') ?></option>
                             <option value="SENT_TO_REPAIR" <?= ($_GET['status'] ?? '') === 'SENT_TO_REPAIR' ? 'selected' : '' ?>>Đã chuyển đơn vị sửa chữa</option>
                             <option value="IN_PROGRESS" <?= ($_GET['status'] ?? '') === 'IN_PROGRESS' ? 'selected' : '' ?>>Đang sửa chữa</option>
                             <option value="REPAIR_COMPLETED" <?= ($_GET['status'] ?? '') === 'REPAIR_COMPLETED' ? 'selected' : '' ?>>Đã sửa xong</option>
@@ -207,7 +207,7 @@ ob_start();
                                     <td>
                                         <span class="status-badge" style="background-color: <?= e($request['status_color']) ?>15; color: <?= e($request['status_color']) ?>;">
                                             <i class="<?= e($request['status_icon']) ?> me-1"></i>
-                                            <?= e($request['status_name']) ?>
+                                            <?= format_status_display(e($request['status_name'])) ?>
                                         </span>
                                     </td>
                                     <td>
@@ -330,7 +330,7 @@ ob_start();
                 <div class="card-header bg-info text-white">
                     <h5 class="card-title mb-0">
                         <i class="fas fa-hand-holding me-2"></i>
-                        Đã bàn giao - Chờ chuyển (<?= count($data['handed']) ?>)
+                        <?= format_status_display('Đã bàn giao') ?> - Chờ chuyển (<?= count($data['handed']) ?>)
                     </h5>
                 </div>
                 <div class="card-body p-0">
@@ -519,8 +519,8 @@ ob_start();
                     <form method="GET" class="d-flex gap-2">
                         <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
                             <option value="">Tất cả trạng thái</option>
-                            <option value="PENDING_HANDOVER" <?= ($_GET['status'] ?? '') === 'PENDING_HANDOVER' ? 'selected' : '' ?>>Chờ bàn giao</option>
-                            <option value="HANDED_TO_CLERK" <?= ($_GET['status'] ?? '') === 'HANDED_TO_CLERK' ? 'selected' : '' ?>>Đã bàn giao cho văn thư</option>
+                            <option value="PENDING_HANDOVER" <?= ($_GET['status'] ?? '') === 'PENDING_HANDOVER' ? 'selected' : '' ?>><?= format_status_display('Chờ bàn giao') ?></option>
+                            <option value="HANDED_TO_CLERK" <?= ($_GET['status'] ?? '') === 'HANDED_TO_CLERK' ? 'selected' : '' ?>><?= format_status_display('Đã bàn giao cho văn thư') ?></option>
                             <option value="SENT_TO_REPAIR" <?= ($_GET['status'] ?? '') === 'SENT_TO_REPAIR' ? 'selected' : '' ?>>Đã chuyển đơn vị sửa chữa</option>
                             <option value="IN_PROGRESS" <?= ($_GET['status'] ?? '') === 'IN_PROGRESS' ? 'selected' : '' ?>>Đang sửa chữa</option>
                             <option value="REPAIR_COMPLETED" <?= ($_GET['status'] ?? '') === 'REPAIR_COMPLETED' ? 'selected' : '' ?>>Đã sửa xong</option>
@@ -544,13 +544,13 @@ ob_start();
             <ul class="nav nav-tabs" id="statusTabs" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab">
-                        Chờ bàn giao
+                        <?= format_status_display('Chờ bàn giao') ?>
                         <span class="badge bg-warning ms-2"><?= count($data['allRequests']['PENDING_HANDOVER'] ?? []) ?></span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="handed-tab" data-bs-toggle="tab" data-bs-target="#handed" type="button" role="tab">
-                        Đã bàn giao
+                        <?= format_status_display('Đã bàn giao') ?>
                         <span class="badge bg-info ms-2"><?= count($data['allRequests']['HANDED_TO_CLERK'] ?? []) ?></span>
                     </button>
                 </li>

@@ -99,6 +99,8 @@ $request = null;
 $repairDetails = [];
 if (isset($_GET['id'])) {
     $request_id = (int)$_GET['id'];
+    
+    // Kiểm tra quyền truy cập: chỉ cho phép technician xem đơn của phòng ban mình
     $request = $db->fetch(
         "SELECT r.*, e.name as equipment_name, e.code as equipment_code, e.model as equipment_model,
                 u.full_name as requester_name, u.phone as requester_phone,
@@ -108,8 +110,11 @@ if (isset($_GET['id'])) {
          LEFT JOIN users u ON r.requester_id = u.id
          LEFT JOIN departments d ON u.department_id = d.id
          LEFT JOIN repair_statuses s ON r.current_status_id = s.id
-         WHERE r.id = ? AND s.code = 'IN_PROGRESS'",
-        [$request_id]
+         LEFT JOIN repair_workflow_steps rws ON r.id = rws.request_id
+         WHERE r.id = ? AND s.code = 'IN_PROGRESS' 
+         AND (r.assigned_technician_id = ? OR rws.assigned_department_id = ?)
+         LIMIT 1",
+        [$request_id, $user['id'], $user['department_id']]
     );
     
     if (!$request) {

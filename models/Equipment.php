@@ -88,12 +88,17 @@ class Equipment {
             throw new Exception('Mã thiết bị đã tồn tại');
         }
         
+        // Validate type_id
+        if (empty($data['type_id'])) {
+            throw new Exception('Loại thiết bị là bắt buộc');
+        }
+        
         $equipmentData = [
             'code' => $data['code'],
             'name' => $data['name'],
             'model' => $data['model'] ?? null,
             'brand' => $data['brand'] ?? null,
-            'type_id' => $data['type_id'] ?? null,
+            'type_id' => (int)$data['type_id'],
             'department_id' => $data['department_id'] ?? null,
             'location' => $data['location'] ?? null,
             'purchase_date' => $data['purchase_date'] ?? null,
@@ -124,6 +129,11 @@ class Equipment {
             }
         }
         
+        // Validate type_id khi update
+        if (isset($data['type_id']) && empty($data['type_id'])) {
+            throw new Exception('Loại thiết bị là bắt buộc');
+        }
+        
         $updateData = [];
         $allowedFields = ['code', 'name', 'model', 'brand', 'type_id', 'department_id', 
                          'location', 'purchase_date', 'warranty_date', 'purchase_price', 
@@ -131,7 +141,11 @@ class Equipment {
         
         foreach ($allowedFields as $field) {
             if (isset($data[$field])) {
-                $updateData[$field] = $data[$field];
+                if ($field === 'type_id' && !empty($data[$field])) {
+                    $updateData[$field] = (int)$data[$field];
+                } else {
+                    $updateData[$field] = $data[$field];
+                }
             }
         }
         

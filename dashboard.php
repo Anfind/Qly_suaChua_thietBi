@@ -66,31 +66,72 @@ elseif (has_role('requester')) {
 
 // Thống kê cho các role khác
 else {
-    $role_conditions = [
-        'logistics' => "s.code IN ('PENDING_HANDOVER', 'RETRIEVED')",
-        'clerk' => "s.code IN ('HANDED_TO_CLERK', 'REPAIR_COMPLETED')", 
-        'technician' => "s.code IN ('SENT_TO_REPAIR', 'IN_PROGRESS')"
-    ];
-    
-    $condition = $role_conditions[$user['role_name']] ?? "1=1";
-    
-    $stats = [
-        'pending_tasks' => $db->fetch("SELECT COUNT(*) as count FROM repair_requests r JOIN repair_statuses s ON r.current_status_id = s.id WHERE $condition")['count'],
-        'total_requests' => $db->fetch("SELECT COUNT(*) as count FROM repair_requests")['count'],
-        'completed_today' => $db->fetch("SELECT COUNT(*) as count FROM repair_status_history WHERE DATE(created_at) = CURDATE() AND user_id = ?", [$user['id']])['count']
-    ];
-    
-    $recent_requests = $db->fetchAll(
-        "SELECT r.request_code, r.created_at, e.name as equipment_name, 
-                u.full_name as requester_name, s.name as status_name, s.color as status_color
-         FROM repair_requests r
-         JOIN equipments e ON r.equipment_id = e.id
-         JOIN users u ON r.requester_id = u.id
-         JOIN repair_statuses s ON r.current_status_id = s.id
-         WHERE $condition
-         ORDER BY r.created_at DESC
-         LIMIT 10"
-    );
+    if ($user['role_name'] === 'technician') {
+        // Technician: filter theo phòng ban trong workflow steps
+        $stats = [
+            'pending_tasks' => $db->fetch(
+                "SELECT COUNT(DISTINCT rws.request_id) as count 
+                 FROM repair_workflow_steps rws 
+                 INNER JOIN repair_requests r ON rws.request_id = r.id
+                 INNER JOIN repair_statuses s ON r.current_status_id = s.id
+                 WHERE rws.assigned_department_id = ? 
+                 AND rws.status IN ('pending', 'in_progress')", 
+                [$user['department_id']]
+            )['count'],
+            'total_requests' => $db->fetch("SELECT COUNT(*) as count FROM repair_requests")['count'],
+            'completed_today' => $db->fetch(
+                "SELECT COUNT(DISTINCT rws.request_id) as count 
+                 FROM repair_workflow_steps rws 
+                 INNER JOIN repair_status_history rsh ON rws.request_id = rsh.request_id
+                 WHERE rws.assigned_department_id = ? 
+                 AND rws.status = 'completed'
+                 AND DATE(rsh.created_at) = CURDATE() 
+                 AND rsh.user_id = ?", 
+                [$user['department_id'], $user['id']]
+            )['count']
+        ];
+        
+        $recent_requests = $db->fetchAll(
+            "SELECT DISTINCT r.request_code, r.created_at, e.name as equipment_name, 
+                    u.full_name as requester_name, s.name as status_name, s.color as status_color
+             FROM repair_requests r
+             INNER JOIN repair_workflow_steps rws ON r.id = rws.request_id
+             JOIN equipments e ON r.equipment_id = e.id
+             JOIN users u ON r.requester_id = u.id
+             JOIN repair_statuses s ON r.current_status_id = s.id
+             WHERE rws.assigned_department_id = ? 
+             AND rws.status IN ('pending', 'in_progress', 'completed')
+             ORDER BY r.created_at DESC
+             LIMIT 10",
+            [$user['department_id']]
+        );
+    } else {
+        // Các role khác (logistics, clerk)
+        $role_conditions = [
+            'logistics' => "s.code IN ('PENDING_HANDOVER', 'RETRIEVED')",
+            'clerk' => "s.code IN ('HANDED_TO_CLERK', 'REPAIR_COMPLETED')"
+        ];
+        
+        $condition = $role_conditions[$user['role_name']] ?? "1=1";
+        
+        $stats = [
+            'pending_tasks' => $db->fetch("SELECT COUNT(*) as count FROM repair_requests r JOIN repair_statuses s ON r.current_status_id = s.id WHERE $condition")['count'],
+            'total_requests' => $db->fetch("SELECT COUNT(*) as count FROM repair_requests")['count'],
+            'completed_today' => $db->fetch("SELECT COUNT(*) as count FROM repair_status_history WHERE DATE(created_at) = CURDATE() AND user_id = ?", [$user['id']])['count']
+        ];
+        
+        $recent_requests = $db->fetchAll(
+            "SELECT r.request_code, r.created_at, e.name as equipment_name, 
+                    u.full_name as requester_name, s.name as status_name, s.color as status_color
+             FROM repair_requests r
+             JOIN equipments e ON r.equipment_id = e.id
+             JOIN users u ON r.requester_id = u.id
+             JOIN repair_statuses s ON r.current_status_id = s.id
+             WHERE $condition
+             ORDER BY r.created_at DESC
+             LIMIT 10"
+        );
+    }
 }
 
 $breadcrumbs = [
@@ -330,7 +371,7 @@ ob_start();
                                             <?php if (isset($request['status_icon'])): ?>
                                                 <i class="<?= e($request['status_icon']) ?> me-1"></i>
                                             <?php endif; ?>
-                                            <?= e($request['status_name']) ?>
+                                            <?= format_status_display(e($request['status_name'])) ?>
                                         </span>
                                     </div>
                                 </div>
@@ -395,7 +436,7 @@ ob_start();
                         <div class="col-md-4 mb-3">
                             <a href="<?= url('logistics/handover.php') ?>" class="btn btn-primary w-100 py-3">
                                 <i class="fas fa-hand-holding fa-2x d-block mb-2"></i>
-                                Bàn giao thiết bị
+                                Nhận đề xuất
                             </a>
                         </div>
                         <div class="col-md-4 mb-3">

@@ -16,7 +16,7 @@ $db = Database::getInstance();
 $error = '';
 $success = '';
 
-// Xử lý bàn giao
+// Xử lý nhận đề xuất
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         verify_csrf();
@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'notes' => $notes
         ]);
         
-        $success = 'Đã xác nhận bàn giao thành công';
+        $success = 'Đã xác nhận nhận đề xuất thành công';
         
     } catch (Exception $e) {
         $error = $e->getMessage();
@@ -109,11 +109,11 @@ if (isset($_GET['id'])) {
     );
     
     if (!$request) {
-        redirect('index.php', 'Không tìm thấy đơn hoặc đơn không ở trạng thái chờ bàn giao', 'error');
+        redirect('index.php', 'Không tìm thấy đơn hoặc đơn không ở trạng thái chờ nhận đề xuất', 'error');
     }
 }
 
-// Lấy danh sách đơn chờ bàn giao
+// Lấy danh sách đơn chờ nhận đề xuất
 $pendingRequests = $db->fetchAll(
     "SELECT r.*, e.name as equipment_name, e.code as equipment_code,
             u.full_name as requester_name, d.name as department_name
@@ -126,12 +126,12 @@ $pendingRequests = $db->fetchAll(
      ORDER BY r.created_at ASC"
 );
 
-$title = 'Bàn giao thiết bị';
+$title = 'Nhận đề xuất';
 
 $breadcrumbs = [
     ['title' => 'Trang chủ', 'url' => url('dashboard.php')],
     ['title' => 'Giao liên', 'url' => url('logistics/')],
-    ['title' => 'Bàn giao thiết bị', 'url' => '']
+    ['title' => 'Nhận đề xuất', 'url' => '']
 ];
 
 ob_start();
@@ -141,7 +141,7 @@ ob_start();
     <div class="col-md-8">
         <h2 class="page-title">
             <i class="fas fa-handshake me-2"></i>
-            Bàn giao thiết bị
+            Nhận đề xuất
         </h2>
     </div>
     <div class="col-md-4 text-end">
@@ -166,11 +166,11 @@ ob_start();
 <?php endif; ?>
 
 <?php if ($request): ?>
-    <!-- Form bàn giao cụ thể -->
+    <!-- Form nhận đề xuất cụ thể -->
     <div class="card">
         <div class="card-header">
             <h5 class="mb-0">
-                Bàn giao đơn #<?= e($request['request_code']) ?>
+                Nhận đề xuất #<?= e($request['request_code']) ?>
             </h5>
         </div>
         <div class="card-body">
@@ -229,14 +229,14 @@ ob_start();
                 </div>
                 
                 <div class="mb-3">
-                    <label for="notes" class="form-label">Ghi chú bàn giao</label>
+                    <label for="notes" class="form-label">Ghi chú nhận đề xuất</label>
                     <textarea name="notes" id="notes" class="form-control" rows="4" 
                               placeholder="Ghi chú về tình trạng thiết bị, thông tin bổ sung..."></textarea>
                 </div>
                 
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-handshake me-1"></i>Xác nhận bàn giao
+                        <i class="fas fa-handshake me-1"></i>Xác nhận nhận đề xuất
                     </button>
                     <a href="index.php" class="btn btn-secondary">Hủy</a>
                 </div>
@@ -244,18 +244,18 @@ ob_start();
         </div>
     </div>
 <?php else: ?>
-    <!-- Danh sách đơn chờ bàn giao -->
+    <!-- Danh sách đơn chờ nhận đề xuất -->
     <div class="card">
         <div class="card-header">
             <h5 class="mb-0">
-                Danh sách đơn chờ bàn giao (<?= count($pendingRequests) ?>)
+                Danh sách đơn chờ nhận đề xuất (<?= count($pendingRequests) ?>)
             </h5>
         </div>
         <div class="card-body">
             <?php if (empty($pendingRequests)): ?>
                 <div class="text-center py-4">
                     <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                    <p class="text-muted">Không có đơn nào cần bàn giao</p>
+                    <p class="text-muted">Không có đơn nào cần nhận đề xuất</p>
                     <a href="index.php" class="btn btn-primary">
                         <i class="fas fa-arrow-left me-1"></i>Quay lại Dashboard
                     </a>
@@ -310,7 +310,7 @@ ob_start();
                                     <td><?= format_date($req['created_at']) ?></td>
                                     <td>
                                         <a href="?id=<?= $req['id'] ?>" class="btn btn-sm btn-primary">
-                                            <i class="fas fa-handshake me-1"></i>Bàn giao
+                                            <i class="fas fa-handshake me-1"></i>Nhận đề xuất
                                         </a>
                                     </td>
                                 </tr>

@@ -80,7 +80,7 @@ ob_start();
         <div class="d-flex align-items-center gap-3">
             <span class="status-badge fs-6" style="background-color: <?= e($request['status_color']) ?>15; color: <?= e($request['status_color']) ?>;">
                 <i class="<?= e($request['status_icon']) ?> me-1"></i>
-                <?= e($request['status_name']) ?>
+                <?= format_status_display(e($request['status_name'])) ?>
             </span>
             
             <?php
@@ -462,7 +462,7 @@ ob_start();
                                 <i class="<?= e($history['status_icon']) ?>"></i>
                             </div>
                             <div class="timeline-content">
-                                <h6 class="mb-1"><?= e($history['status_name']) ?></h6>
+                                <h6 class="mb-1"><?= format_status_display(e($history['status_name'])) ?></h6>
                                 <small class="text-muted d-block">
                                     <?= e($history['user_name']) ?> - <?= e($history['role_name']) ?>
                                 </small>
@@ -555,7 +555,7 @@ ob_start();
                             <?php foreach ($allowedNextStatuses as $status): ?>
                                 <?php
                                 $statusNames = [
-                                    'HANDED_TO_CLERK' => 'Đã bàn giao cho văn thư',
+                                    'HANDED_TO_CLERK' => format_status_display('Đã bàn giao cho văn thư'),
                                     'SENT_TO_REPAIR' => 'Đã chuyển đơn vị sửa chữa',
                                     'IN_PROGRESS' => 'Đang sửa chữa',
                                     'REPAIR_COMPLETED' => 'Đã sửa xong - chờ thu hồi',

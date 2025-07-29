@@ -360,4 +360,17 @@ function log_activity($action, $details = null) {
         'created_at' => date('Y-m-d H:i:s')
     ]);
 }
+
+/**
+ * Đổi text hiển thị trạng thái theo yêu cầu nghiệp vụ mới
+ */
+function format_status_display($status_name, $status_code = '') {
+    // Đổi text hiển thị để phù hợp với quy trình mới
+    $status_mappings = [
+        'Đã bàn giao cho văn thư' => 'Đã đến văn thư – chờ xử lý',
+        'Chờ bàn giao' => 'Chờ nhận đề xuất'
+    ];
+    
+    return $status_mappings[$status_name] ?? $status_name;
+}
 ?>

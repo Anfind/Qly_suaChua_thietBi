@@ -18,12 +18,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         switch ($action) {
             case 'create':
+                // Validate dữ liệu đầu vào
+                if (empty($_POST['name']) || empty($_POST['code'])) {
+                    throw new Exception('Tên thiết bị và mã thiết bị là bắt buộc');
+                }
+                
+                if (empty($_POST['type_id'])) {
+                    throw new Exception('Vui lòng chọn loại thiết bị');
+                }
+                
                 $data = [
-                    'name' => $_POST['name'] ?? '',
-                    'code' => $_POST['code'] ?? '',
-                    'type_id' => $_POST['type_id'] ?? null,
-                    'model' => $_POST['model'] ?? '',
-                    'brand' => $_POST['brand'] ?? '',
+                    'name' => trim($_POST['name']),
+                    'code' => trim($_POST['code']),
+                    'type_id' => (int)$_POST['type_id'],
+                    'model' => trim($_POST['model'] ?? ''),
+                    'brand' => trim($_POST['brand'] ?? ''),
                     'purchase_date' => $_POST['purchase_date'] ?? null,
                     'warranty_date' => $_POST['warranty_date'] ?? null,
                     'status' => $_POST['status'] ?? 'active',
@@ -53,16 +62,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
             case 'update':
                 $id = (int)($_POST['id'] ?? 0);
+                
+                // Validate dữ liệu đầu vào
+                if (empty($_POST['name']) || empty($_POST['code'])) {
+                    throw new Exception('Tên thiết bị và mã thiết bị là bắt buộc');
+                }
+                
+                if (empty($_POST['type_id'])) {
+                    throw new Exception('Vui lòng chọn loại thiết bị');
+                }
+                
                 $data = [
-                    'name' => $_POST['name'] ?? '',
-                    'code' => $_POST['code'] ?? '',
-                    'type_id' => $_POST['type_id'] ?? null,
-                    'model' => $_POST['model'] ?? '',
-                    'brand' => $_POST['brand'] ?? '',
+                    'name' => trim($_POST['name']),
+                    'code' => trim($_POST['code']),
+                    'type_id' => (int)$_POST['type_id'],
+                    'model' => trim($_POST['model'] ?? ''),
+                    'brand' => trim($_POST['brand'] ?? ''),
                     'purchase_date' => $_POST['purchase_date'] ?? null,
                     'warranty_date' => $_POST['warranty_date'] ?? null,
                     'status' => $_POST['status'] ?? 'active',
-                    'department_id' => $_POST['department_id'] ?? null,
+                    'department_id' => !empty($_POST['department_id']) ? (int)$_POST['department_id'] : null,
                     'location' => $_POST['location'] ?? '',
                     'description' => $_POST['description'] ?? '',
                     'specifications' => $_POST['specifications'] ?? '',
@@ -159,7 +178,7 @@ if ($statusFilter) {
 }
 
 if ($typeFilter) {
-    $whereConditions[] = "e.equipment_type = ?";
+    $whereConditions[] = "e.type_id = ?";
     $params[] = $typeFilter;
 }
 
@@ -183,15 +202,8 @@ $equipments = $db->fetchAll($query, $params);
 // Get departments for filter
 $departments = $db->fetchAll("SELECT id, name FROM departments ORDER BY name");
 
-// Equipment types
-$equipmentTypes = [
-    'computer' => 'Máy tính',
-    'printer' => 'Máy in',
-    'scanner' => 'Máy quét',
-    'projector' => 'Máy chiếu',
-    'air_conditioner' => 'Điều hòa',
-    'other' => 'Khác'
-];
+// Get equipment types for filter
+$equipmentTypes = $db->fetchAll("SELECT id, name FROM equipment_types ORDER BY name");
 
 $breadcrumbs = [
     ['title' => 'Trang chủ', 'url' => url('dashboard.php')],
@@ -260,9 +272,9 @@ ob_start();
             <div class="col-md-2">
                 <select name="type" class="form-select">
                     <option value="">Tất cả loại</option>
-                    <?php foreach ($equipmentTypes as $key => $value): ?>
-                        <option value="<?= $key ?>" <?= $typeFilter === $key ? 'selected' : '' ?>>
-                            <?= $value ?>
+                    <?php foreach ($equipmentTypes as $type): ?>
+                        <option value="<?= $type['id'] ?>" <?= $typeFilter == $type['id'] ? 'selected' : '' ?>>
+                            <?= e($type['name']) ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -417,9 +429,10 @@ ob_start();
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Loại thiết bị</label>
-                            <select name="type_id" id="equipmentType" class="form-select">
-                                <?php foreach ($equipmentTypes as $key => $value): ?>
-                                    <option value="<?= $key ?>"><?= $value ?></option>
+                            <select name="type_id" id="equipmentType" class="form-select" required>
+                                <option value="">-- Chọn loại thiết bị --</option>
+                                <?php foreach ($equipmentTypes as $type): ?>
+                                    <option value="<?= $type['id'] ?>"><?= $type['name'] ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -653,6 +666,36 @@ $custom_js = "
         document.querySelector('input[name=\"action\"]').value = 'create';
         document.getElementById('equipmentId').value = '';
         document.getElementById('currentImage').style.display = 'none';
+    });
+    
+    // Form validation trước khi submit
+    document.getElementById('equipmentForm').addEventListener('submit', function(e) {
+        const name = document.getElementById('equipmentName').value.trim();
+        const code = document.getElementById('equipmentCode').value.trim();
+        const typeId = document.getElementById('equipmentType').value;
+        
+        if (!name) {
+            e.preventDefault();
+            alert('Vui lòng nhập tên thiết bị');
+            document.getElementById('equipmentName').focus();
+            return false;
+        }
+        
+        if (!code) {
+            e.preventDefault();
+            alert('Vui lòng nhập mã thiết bị');
+            document.getElementById('equipmentCode').focus();
+            return false;
+        }
+        
+        if (!typeId) {
+            e.preventDefault();
+            alert('Vui lòng chọn loại thiết bị');
+            document.getElementById('equipmentType').focus();
+            return false;
+        }
+        
+        return true;
     });
 </script>
 ";

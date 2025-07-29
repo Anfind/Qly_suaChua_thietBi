@@ -23,7 +23,7 @@ ob_start();
             <i class="fas fa-truck me-2"></i>
             Dashboard Giao liên
         </h2>
-        <p class="text-muted">Quản lý bàn giao và thu hồi thiết bị</p>
+        <p class="text-muted">Quản lý nhận đề xuất và thu hồi thiết bị</p>
     </div>
 </div>
 
@@ -35,7 +35,7 @@ ob_start();
                 <div class="d-flex justify-content-between">
                     <div>
                         <h3 class="mb-1"><?= count($pendingHandover) ?></h3>
-                        <p class="mb-0">Chờ bàn giao</p>
+                        <p class="mb-0">Chờ nhận đề xuất</p>
                     </div>
                     <div class="align-self-center">
                         <i class="fas fa-handshake fa-2x opacity-75"></i>
@@ -76,14 +76,14 @@ ob_start();
     <div class="card-header">
         <h5 class="mb-0">
             <i class="fas fa-handshake me-2"></i>
-            Đơn chờ bàn giao (<?= count($pendingHandover) ?>)
+            Đơn chờ nhận đề xuất (<?= count($pendingHandover) ?>)
         </h5>
     </div>
     <div class="card-body">
         <?php if (empty($pendingHandover)): ?>
             <div class="text-center py-4">
                 <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                <p class="text-muted">Không có đơn nào cần bàn giao</p>
+                <p class="text-muted">Không có đơn nào cần nhận đề xuất</p>
             </div>
         <?php else: ?>
             <div class="table-responsive">
@@ -136,7 +136,7 @@ ob_start();
                                 <td>
                                     <a href="handover.php?id=<?= $request['id'] ?>" 
                                        class="btn btn-sm btn-primary">
-                                        <i class="fas fa-handshake me-1"></i>Bàn giao
+                                        <i class="fas fa-handshake me-1"></i>Nhận đề xuất
                                     </a>
                                 </td>
                             </tr>

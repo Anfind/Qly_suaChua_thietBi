@@ -72,7 +72,7 @@ if (!function_exists('render_recent_attachments_widget')) {
                                         </a>
                                         <span class="badge ms-2" style="background-color: <?= e($request['status_color']) ?>;">
                                             <i class="<?= e($request['status_icon']) ?> me-1"></i>
-                                            <?= e($request['status_name']) ?>
+                                            <?= format_status_display(e($request['status_name'])) ?>
                                         </span>
                                     </div>
                                     <div class="text-muted small mb-1">

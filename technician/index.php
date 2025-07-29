@@ -52,14 +52,14 @@ ob_start();
                 <div class="row align-items-center">
                     <div class="col">
                         <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                            Chờ tiếp nhận
+                            Workflow chờ xử lý
                         </div>
                         <div class="h5 mb-0 font-weight-bold text-gray-800">
-                            <?= count($data['sent']) ?>
+                            <?= count($data['pendingSteps'] ?? []) ?>
                         </div>
                     </div>
                     <div class="col-auto">
-                        <i class="fas fa-inbox fa-2x text-info"></i>
+                        <i class="fas fa-hourglass-half fa-2x text-info"></i>
                     </div>
                 </div>
             </div>
@@ -72,43 +72,14 @@ ob_start();
                 <div class="row align-items-center">
                     <div class="col">
                         <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                            Đang sửa chữa
+                            Workflow đang xử lý
                         </div>
                         <div class="h5 mb-0 font-weight-bold text-gray-800">
-                            <?= count($data['inProgress']) ?>
+                            <?= count($data['inProgressSteps'] ?? []) ?>
                         </div>
                     </div>
                     <div class="col-auto">
-                        <i class="fas fa-wrench fa-2x text-warning"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card border-left-success">
-            <div class="card-body">
-                <div class="row align-items-center">
-                    <div class="col">
-                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                            Hoàn thành hôm nay
-                        </div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">
-                            <?php
-                            $today = date('Y-m-d');
-                            $completedToday = 0;
-                            foreach (array_merge($data['sent'], $data['inProgress']) as $request) {
-                                if (isset($request['updated_at']) && date('Y-m-d', strtotime($request['updated_at'])) === $today) {
-                                    $completedToday++;
-                                }
-                            }
-                            echo $completedToday;
-                            ?>
-                        </div>
-                    </div>
-                    <div class="col-auto">
-                        <i class="fas fa-check-circle fa-2x text-success"></i>
+                        <i class="fas fa-cogs fa-2x text-warning"></i>
                     </div>
                 </div>
             </div>
@@ -121,20 +92,188 @@ ob_start();
                 <div class="row align-items-center">
                     <div class="col">
                         <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                            Tổng công việc
+                            Chờ tiếp nhận (cũ)
                         </div>
                         <div class="h5 mb-0 font-weight-bold text-gray-800">
-                            <?= count($data['sent']) + count($data['inProgress']) ?>
+                            <?= count($data['sent']) ?>
                         </div>
                     </div>
                     <div class="col-auto">
-                        <i class="fas fa-tasks fa-2x text-primary"></i>
+                        <i class="fas fa-inbox fa-2x text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-left-success">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Đang sửa chữa (cũ)
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            <?= count($data['inProgress']) ?>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-wrench fa-2x text-success"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Workflow Steps chờ xử lý -->
+<?php if (!empty($data['pendingSteps'])): ?>
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-hourglass-half me-2"></i>
+            Workflow Steps chờ xử lý (<?= count($data['pendingSteps']) ?>)
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Mã đơn</th>
+                        <th>Thiết bị</th>
+                        <th>Bước</th>
+                        <th>Mô tả lỗi</th>
+                        <th>Mức độ</th>
+                        <th>Trạng thái</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($data['pendingSteps'] as $step): ?>
+                    <tr>
+                        <td>
+                            <a href="<?= url('repairs/view.php?code=' . $step['request_code']) ?>" 
+                               class="text-decoration-none fw-bold">
+                                <?= e($step['request_code']) ?>
+                            </a>
+                        </td>
+                        <td>
+                            <div class="fw-bold"><?= e($step['equipment_name']) ?></div>
+                            <small class="text-muted"><?= e($step['equipment_code']) ?></small>
+                        </td>
+                        <td>
+                            <span class="badge bg-info">Bước <?= $step['step_order'] ?></span>
+                        </td>
+                        <td class="text-wrap" style="max-width: 200px;">
+                            <?= e(substr($step['problem_description'], 0, 100)) ?>
+                            <?php if (strlen($step['problem_description']) > 100): ?>...<?php endif; ?>
+                        </td>
+                        <td>
+                            <?php
+                            $urgencyColors = [
+                                'low' => 'success',
+                                'medium' => 'warning', 
+                                'high' => 'danger',
+                                'critical' => 'dark'
+                            ];
+                            $urgencyLabels = [
+                                'low' => 'Thấp',
+                                'medium' => 'Trung bình',
+                                'high' => 'Cao', 
+                                'critical' => 'Khẩn cấp'
+                            ];
+                            ?>
+                            <span class="badge bg-<?= $urgencyColors[$step['urgency_level']] ?>">
+                                <?= $urgencyLabels[$step['urgency_level']] ?>
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary">Chờ xử lý</span>
+                        </td>
+                        <td>
+                            <a href="workflow.php#step-<?= $step['workflow_step_id'] ?>" 
+                               class="btn btn-sm btn-primary">
+                                <i class="fas fa-play me-1"></i>Bắt đầu
+                            </a>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
+<!-- Workflow Steps đang xử lý -->
+<?php if (!empty($data['inProgressSteps'])): ?>
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-cogs me-2"></i>
+            Workflow Steps đang xử lý (<?= count($data['inProgressSteps']) ?>)
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Mã đơn</th>
+                        <th>Thiết bị</th>
+                        <th>Bước</th>
+                        <th>Mô tả lỗi</th>
+                        <th>Bắt đầu</th>
+                        <th>Trạng thái</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($data['inProgressSteps'] as $step): ?>
+                    <tr>
+                        <td>
+                            <a href="<?= url('repairs/view.php?code=' . $step['request_code']) ?>" 
+                               class="text-decoration-none fw-bold">
+                                <?= e($step['request_code']) ?>
+                            </a>
+                        </td>
+                        <td>
+                            <div class="fw-bold"><?= e($step['equipment_name']) ?></div>
+                            <small class="text-muted"><?= e($step['equipment_code']) ?></small>
+                        </td>
+                        <td>
+                            <span class="badge bg-warning">Bước <?= $step['step_order'] ?></span>
+                        </td>
+                        <td class="text-wrap" style="max-width: 200px;">
+                            <?= e(substr($step['problem_description'], 0, 100)) ?>
+                            <?php if (strlen($step['problem_description']) > 100): ?>...<?php endif; ?>
+                        </td>
+                        <td>
+                            <?php if ($step['step_started_at']): ?>
+                                <small><?= date('d/m/Y H:i', strtotime($step['step_started_at'])) ?></small>
+                            <?php else: ?>
+                                <small class="text-muted">Chưa bắt đầu</small>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <span class="badge bg-warning">Đang xử lý</span>
+                        </td>
+                        <td>
+                            <a href="workflow.php#step-<?= $step['workflow_step_id'] ?>" 
+                               class="btn btn-sm btn-success">
+                                <i class="fas fa-edit me-1"></i>Tiếp tục
+                            </a>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- Đơn chờ tiếp nhận -->
 <?php if (!empty($data['sent'])): ?>

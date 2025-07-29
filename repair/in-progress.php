@@ -5,22 +5,54 @@ require_role('technician');
 $controller = new RepairController();
 $db = Database::getInstance();
 
-// Lấy danh sách đơn đang sửa chữa và chờ tiếp nhận
+// Lấy danh sách đơn đang sửa chữa cho phòng ban của technician
 $user = current_user();
-$inProgressRequests = $db->fetchAll(
+
+// Sử dụng RepairRequest model để lấy đúng đơn theo workflow
+$repairModel = new RepairRequest();
+
+// Lấy đơn workflow (đa phòng ban) 
+$workflowRequests = $repairModel->getByWorkflowForTechnician($user['id'], ['pending', 'in_progress']);
+
+// Lấy đơn truyền thống (assigned_technician_id) để backward compatible
+$traditionalRequests = $db->fetchAll(
     "SELECT r.*, e.name as equipment_name, e.code as equipment_code, e.model as equipment_model,
             u.full_name as requester_name, u.phone as requester_phone,
-            d.name as department_name, s.name as status_name, s.code as status_code
+            d.name as department_name, s.name as status_name, s.code as status_code,
+            'traditional' as request_type
      FROM repair_requests r
      LEFT JOIN equipments e ON r.equipment_id = e.id
      LEFT JOIN users u ON r.requester_id = u.id
      LEFT JOIN departments d ON u.department_id = d.id
      LEFT JOIN repair_statuses s ON r.current_status_id = s.id
      WHERE s.code IN ('SENT_TO_REPAIR', 'IN_PROGRESS') 
-     AND (r.assigned_technician_id = ? OR r.assigned_technician_id IS NULL)
+     AND r.assigned_technician_id = ?
      ORDER BY r.updated_at DESC",
     [$user['id']]
 );
+
+// Gộp 2 danh sách và loại bỏ duplicate
+$allRequests = [];
+$processedIds = [];
+
+// Thêm workflow requests trước (ưu tiên cao hơn)
+foreach ($workflowRequests as $req) {
+    if (!in_array($req['id'], $processedIds)) {
+        $req['request_type'] = 'workflow';
+        $allRequests[] = $req;
+        $processedIds[] = $req['id'];
+    }
+}
+
+// Thêm traditional requests (nếu chưa có trong workflow)
+foreach ($traditionalRequests as $req) {
+    if (!in_array($req['id'], $processedIds)) {
+        $allRequests[] = $req;
+        $processedIds[] = $req['id'];
+    }
+}
+
+$inProgressRequests = $allRequests;
 
 $title = 'Đang sửa chữa';
 

@@ -501,7 +501,7 @@
                 <?php if (has_role('logistics')): ?>
                 <a href="<?= url('logistics/handover.php') ?>" class="nav-link <?= $current_page === 'handover' ? 'active' : '' ?>">
                     <i class="fas fa-hand-holding"></i>
-                    Bàn giao thiết bị
+                    Nhận đề xuất
                 </a>
                 <a href="<?= url('logistics/return.php') ?>" class="nav-link <?= $current_page === 'return' ? 'active' : '' ?>">
                     <i class="fas fa-undo"></i>

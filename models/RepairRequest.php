@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/User.php';
+
 /**
  * Model RepairRequest - Quản lý đơn sửa chữa
  */
@@ -191,6 +193,55 @@ class RepairRequest {
                 LEFT JOIN repair_statuses s ON r.current_status_id = s.id
                 WHERE " . implode(' AND ', $where) . "
                 ORDER BY r.created_at ASC";
+        
+        return $this->db->fetchAll($sql, $params);
+    }
+    
+    /**
+     * Lấy đơn theo workflow cho technician (multi-department)
+     */
+    public function getByWorkflowForTechnician($technician_id, $status_codes = []) {
+        // Lấy department của technician
+        $user = (new User())->getById($technician_id);
+        if (!$user) {
+            return [];
+        }
+        
+        $where = ["rws.assigned_department_id = ?"];
+        $params = [$user['department_id']];
+        
+        if (!empty($status_codes)) {
+            $placeholders = str_repeat('?,', count($status_codes) - 1) . '?';
+            $where[] = "rws.status IN ($placeholders)";
+            $params = array_merge($params, $status_codes);
+        }
+        
+        $sql = "SELECT DISTINCT r.*, e.name as equipment_name, e.code as equipment_code,
+                       u.full_name as requester_name, d_req.name as department_name,
+                       s.name as status_name, s.color as status_color, s.icon as status_icon,
+                       et.name as equipment_type_name,
+                       rws.id as workflow_step_id, rws.step_order, rws.status as step_status,
+                       rws.started_at as step_started_at, rws.notes as step_notes,
+                       d_assigned.name as assigned_department_name, d_assigned.code as assigned_department_code
+                FROM repair_requests r
+                INNER JOIN repair_workflow_steps rws ON r.id = rws.request_id
+                LEFT JOIN equipments e ON r.equipment_id = e.id
+                LEFT JOIN equipment_types et ON e.type_id = et.id
+                LEFT JOIN users u ON r.requester_id = u.id
+                LEFT JOIN departments d_req ON u.department_id = d_req.id
+                LEFT JOIN departments d_assigned ON rws.assigned_department_id = d_assigned.id
+                LEFT JOIN repair_statuses s ON r.current_status_id = s.id
+                WHERE " . implode(' AND ', $where) . "
+                ORDER BY 
+                    CASE rws.status 
+                        WHEN 'in_progress' THEN 1 
+                        WHEN 'pending' THEN 2 
+                        WHEN 'completed' THEN 3
+                    END,
+                    r.urgency_level = 'critical' DESC,
+                    r.urgency_level = 'high' DESC,
+                    r.urgency_level = 'medium' DESC,
+                    r.created_at ASC";
         
         return $this->db->fetchAll($sql, $params);
     }

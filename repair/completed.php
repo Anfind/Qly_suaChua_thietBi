@@ -5,12 +5,21 @@ require_role('technician');
 $controller = new RepairController();
 $db = Database::getInstance();
 
-// Lấy danh sách đơn đã hoàn thành
+// Lấy danh sách đơn đã hoàn thành cho phòng ban của technician
 $user = current_user();
-$completedRequests = $db->fetchAll(
+
+// Sử dụng RepairRequest model để lấy đúng đơn theo workflow
+$repairModel = new RepairRequest();
+
+// Lấy đơn workflow (đa phòng ban) đã hoàn thành
+$workflowCompleted = $repairModel->getByWorkflowForTechnician($user['id'], ['completed']);
+
+// Lấy đơn truyền thống (assigned_technician_id) để backward compatible
+$traditionalCompleted = $db->fetchAll(
     "SELECT r.*, e.name as equipment_name, e.code as equipment_code, e.model as equipment_model,
             u.full_name as requester_name, u.phone as requester_phone,
-            d.name as department_name, s.name as status_name, s.code as status_code
+            d.name as department_name, s.name as status_name, s.code as status_code,
+            'traditional' as request_type
      FROM repair_requests r
      LEFT JOIN equipments e ON r.equipment_id = e.id
      LEFT JOIN users u ON r.requester_id = u.id
@@ -22,6 +31,29 @@ $completedRequests = $db->fetchAll(
      LIMIT 50",
     [$user['id']]
 );
+
+// Gộp 2 danh sách và loại bỏ duplicate
+$allCompleted = [];
+$processedIds = [];
+
+// Thêm workflow requests trước (ưu tiên cao hơn)
+foreach ($workflowCompleted as $req) {
+    if (!in_array($req['id'], $processedIds)) {
+        $req['request_type'] = 'workflow';
+        $allCompleted[] = $req;
+        $processedIds[] = $req['id'];
+    }
+}
+
+// Thêm traditional requests (nếu chưa có trong workflow)
+foreach ($traditionalCompleted as $req) {
+    if (!in_array($req['id'], $processedIds)) {
+        $allCompleted[] = $req;
+        $processedIds[] = $req['id'];
+    }
+}
+
+$completedRequests = $allCompleted;
 
 // Phân loại đơn theo trạng thái
 $statusGroups = [

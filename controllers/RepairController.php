@@ -79,10 +79,16 @@ class RepairController {
      */
     private function technicianDashboard() {
         $user = current_user();
+        
+        // Lấy workflow steps cho multi-department repair
+        $pendingSteps = $this->repairModel->getByWorkflowForTechnician($user['id'], ['pending']);
+        $inProgressSteps = $this->repairModel->getByWorkflowForTechnician($user['id'], ['in_progress']);
+        
+        // Fallback: Lấy đơn truyền thống (assigned_technician_id)
         $sent = $this->repairModel->getByStatus('SENT_TO_REPAIR', ['technician_id' => $user['id']]);
         $inProgress = $this->repairModel->getByStatus('IN_PROGRESS', ['technician_id' => $user['id']]);
         
-        return compact('sent', 'inProgress');
+        return compact('sent', 'inProgress', 'pendingSteps', 'inProgressSteps');
     }
     
     /**
@@ -153,7 +159,8 @@ class RepairController {
             } catch (Exception $e) {
                 $error = $e->getMessage();
                 $user = current_user();
-                $equipments = $this->equipmentModel->getByDepartment($user['department_id']);
+                // Lấy tất cả thiết bị active thay vì chỉ theo department
+                $equipments = $this->equipmentModel->getAll(['status' => 'active']);
                 return compact('equipments', 'error');
             }
         }
@@ -375,7 +382,7 @@ class RepairController {
     }
     
     /**
-     * Xác nhận bàn giao thiết bị (Logistics)
+     * Xác nhận nhận đề xuất (Logistics)
      */
     public function confirmHandover() {
         try {
@@ -397,7 +404,7 @@ class RepairController {
                 
                 $request = $this->repairModel->getById($request_id);
                 redirect('logistics/index.php', 
-                    'Đã xác nhận bàn giao đơn ' . $request['request_code'], 'success');
+                    'Đã xác nhận nhận đề xuất đơn ' . $request['request_code'], 'success');
                 
             } else {
                 throw new Exception('Phương thức không hợp lệ');

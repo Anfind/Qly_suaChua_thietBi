@@ -212,7 +212,7 @@ ob_start();
         <div class="d-flex align-items-center gap-3">
             <span class="status-badge" style="background-color: <?= e($request['status_color']) ?>15; color: <?= e($request['status_color']) ?>;">
                 <i class="<?= e($request['status_icon']) ?> me-1"></i>
-                <?= e($request['status_name']) ?>
+                <?= format_status_display(e($request['status_name'])) ?>
             </span>
             <small class="text-muted">
                 <i class="fas fa-building me-1"></i><?= e($request['department_name']) ?>
@@ -394,7 +394,7 @@ foreach ($statusHistory as $history) {
             <h6 class="mb-3">
                 <span class="status-badge" style="background-color: <?= e($history['status_color']) ?>15; color: <?= e($history['status_color']) ?>;">
                     <i class="<?= e($history['status_icon']) ?> me-1"></i>
-                    <?= e($history['status_name']) ?>
+                    <?= format_status_display(e($history['status_name'])) ?>
                 </span>
                 <span class="ms-2"><?= e($history['user_name']) ?> (<?= e($history['role_name']) ?>)</span>
                 <small class="text-muted ms-2"><?= format_datetime($history['created_at']) ?></small>
@@ -438,7 +438,7 @@ foreach ($statusHistory as $history) {
                         <div class="attachment-info">
                             <div class="attachment-name"><?= e(basename($attachment)) ?></div>
                             <div class="attachment-meta">
-                                <?= ucfirst($fileExt) ?> • <?= e($history['status_name']) ?>
+                                <?= ucfirst($fileExt) ?> • <?= format_status_display(e($history['status_name'])) ?>
                             </div>
                         </div>
                     </div>
