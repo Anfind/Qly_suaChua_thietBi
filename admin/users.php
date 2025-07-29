@@ -11,16 +11,11 @@ $error = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    error_log("POST request received");
-    error_log("POST data: " . print_r($_POST, true));
-    
     try {
-        // Tạm bỏ CSRF check để debug
-        // verify_csrf();
+        verify_csrf();
         
         // Lấy action từ POST data
         $post_action = $_POST['action'] ?? 'create';
-        error_log("Action: " . $post_action);
         
         switch ($post_action) {
             case 'create':
@@ -476,7 +471,7 @@ ob_start();
                 <h5 class="modal-title">Thêm người dùng mới</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" id="createUserForm" novalidate>
+            <form method="POST" action="<?= url('admin/users.php') ?>">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="create">
                 
@@ -484,57 +479,29 @@ ob_start();
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Username <span class="text-danger">*</span></label>
-                            <input type="text" name="username" class="form-control" required 
-                                   pattern="[a-zA-Z0-9_]{3,20}" maxlength="20"
-                                   title="Username chỉ chứa chữ cái, số và dấu gạch dưới, từ 3-20 ký tự">
-                            <div class="invalid-feedback">
-                                Username chỉ chứa chữ cái, số và dấu gạch dưới, từ 3-20 ký tự
-                            </div>
+                            <input type="text" name="username" class="form-control" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Mật khẩu <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <input type="password" name="password" class="form-control" required 
-                                       minlength="6" maxlength="50" id="createPassword">
-                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('createPassword')">
-                                    <i class="fas fa-eye" id="createPasswordIcon"></i>
-                                </button>
-                            </div>
-                            <div class="invalid-feedback">
-                                Mật khẩu phải có ít nhất 6 ký tự
-                            </div>
-                            <small class="text-muted">Mật khẩu phải có ít nhất 6 ký tự</small>
+                            <input type="password" name="password" class="form-control" required minlength="6">
                         </div>
                     </div>
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Họ tên <span class="text-danger">*</span></label>
-                            <input type="text" name="full_name" class="form-control" required 
-                                   maxlength="100" pattern="[^<>]+"
-                                   title="Họ tên không được chứa ký tự < hoặc >">
-                            <div class="invalid-feedback">
-                                Vui lòng nhập họ tên hợp lệ
-                            </div>
+                            <input type="text" name="full_name" class="form-control" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Email</label>
-                            <input type="email" name="email" class="form-control" maxlength="100">
-                            <div class="invalid-feedback">
-                                Vui lòng nhập email hợp lệ
-                            </div>
+                            <input type="email" name="email" class="form-control">
                         </div>
                     </div>
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Số điện thoại</label>
-                            <input type="tel" name="phone" class="form-control" 
-                                   pattern="[0-9+\-\s()]{10,15}" maxlength="15"
-                                   placeholder="VD: 0901234567">
-                            <div class="invalid-feedback">
-                                Số điện thoại không hợp lệ (10-15 số)
-                            </div>
+                            <input type="tel" name="phone" class="form-control">
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Vai trò <span class="text-danger">*</span></label>
@@ -544,9 +511,6 @@ ob_start();
                                     <option value="<?= $role['id'] ?>"><?= e($role['display_name']) ?></option>
                                 <?php endforeach; ?>
                             </select>
-                            <div class="invalid-feedback">
-                                Vui lòng chọn vai trò
-                            </div>
                         </div>
                     </div>
                     
@@ -559,14 +523,13 @@ ob_start();
                                     <option value="<?= $dept['id'] ?>"><?= e($dept['name']) ?></option>
                                 <?php endforeach; ?>
                             </select>
-                            <small class="text-muted">Tùy chọn - Một số vai trò không cần chọn đơn vị</small>
                         </div>
                     </div>
                 </div>
                 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn btn-primary" onclick="console.log('Form submitting...')">
+                    <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save me-2"></i>Tạo người dùng
                     </button>
                 </div>
@@ -630,116 +593,9 @@ $custom_js = "
         }
     }
     
-    // Generate username suggestion based on full name
-    function generateUsername() {
-        const fullName = document.querySelector('input[name=\"full_name\"]').value;
-        const usernameInput = document.querySelector('input[name=\"username\"]');
-        
-        if (fullName && !usernameInput.value) {
-            // Remove Vietnamese accents and convert to lowercase
-            let username = fullName
-                .toLowerCase()
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .replace(/đ/g, 'd')
-                .replace(/[^a-z0-9]/g, '')
-                .slice(0, 15);
-            
-            if (username.length >= 3) {
-                usernameInput.value = username;
-                usernameInput.focus();
-            }
-        }
-    }
-    
-    // Form validation - Simplified
-    function validateCreateForm(event) {
-        const form = event.target;
-        
-        // Basic validation
-        const username = form.querySelector('input[name=\"username\"]').value.trim();
-        const password = form.querySelector('input[name=\"password\"]').value;
-        const fullName = form.querySelector('input[name=\"full_name\"]').value.trim();
-        const roleId = form.querySelector('select[name=\"role_id\"]').value;
-        
-        if (!username || !password || !fullName || !roleId) {
-            alert('Vui lòng điền đầy đủ thông tin bắt buộc');
-            event.preventDefault();
-            return false;
-        }
-        
-        if (password.length < 6) {
-            alert('Mật khẩu phải có ít nhất 6 ký tự');
-            event.preventDefault();
-            return false;
-        }
-        
-        console.log('Form validation passed');
-        return true;
-    }
-    
-    // Auto-focus and form setup on modal show
+    // Auto-focus on modal show
     document.getElementById('createUserModal').addEventListener('shown.bs.modal', function() {
-        // Reset form
-        const form = this.querySelector('form');
-        form.reset();
-        form.classList.remove('was-validated');
-        
-        // Focus first input
         this.querySelector('input[name=\"username\"]').focus();
-        
-        // Setup event listeners
-        const fullNameInput = this.querySelector('input[name=\"full_name\"]');
-        fullNameInput.addEventListener('blur', generateUsername);
-    });
-    
-    // Simplified form submission - let it submit normally
-    // Remove complex validation that might block submission
-    
-    // Password strength indicator
-    document.addEventListener('DOMContentLoaded', function() {
-        const passwordInput = document.getElementById('createPassword');
-        if (passwordInput) {
-            passwordInput.addEventListener('input', function() {
-                const password = this.value;
-                const strength = calculatePasswordStrength(password);
-                updatePasswordStrength(strength);
-            });
-        }
-    });
-    
-    function calculatePasswordStrength(password) {
-        let score = 0;
-        if (password.length >= 6) score++;
-        if (password.length >= 8) score++;
-        if (/[a-z]/.test(password)) score++;
-        if (/[A-Z]/.test(password)) score++;
-        if (/[0-9]/.test(password)) score++;
-        if (/[^A-Za-z0-9]/.test(password)) score++;
-        
-        return Math.min(score, 5);
-    }
-    
-    function updatePasswordStrength(strength) {
-        // Optional: Add password strength indicator
-        // This can be enhanced with a visual indicator
-    }
-    
-    // Real-time validation for username
-    document.addEventListener('DOMContentLoaded', function() {
-        const usernameInputs = document.querySelectorAll('input[name=\"username\"]');
-        usernameInputs.forEach(input => {
-            input.addEventListener('input', function() {
-                const value = this.value;
-                const isValid = /^[a-zA-Z0-9_]{3,20}$/.test(value);
-                
-                if (value && !isValid) {
-                    this.setCustomValidity('Username chỉ chứa chữ cái, số và dấu gạch dưới, từ 3-20 ký tự');
-                } else {
-                    this.setCustomValidity('');
-                }
-            });
-        });
     });
 </script>
 ";
