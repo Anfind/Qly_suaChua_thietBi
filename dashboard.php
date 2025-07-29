@@ -104,36 +104,40 @@ ob_start();
     <?php if (has_role('admin')): ?>
         <!-- Admin Dashboard -->
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="stats-card bg-primary text-white">
-                <div class="stats-number"><?= number_format($stats['total_requests']) ?></div>
-                <div class="stats-label">Tổng đơn sửa chữa</div>
-                <div class="stats-icon"><i class="fas fa-clipboard-list"></i></div>
+            <div class="stats-card" style="border-left: 4px solid #3b82f6;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stats-number" style="color: #3b82f6;"><?= number_format($stats['total_requests']) ?></div>
+                        <div class="stats-label">Tổng đơn sửa chữa</div>
+                    </div>
+                    <div style="color: #3b82f6;">
+                        <i class="fas fa-clipboard-list fa-2x"></i>
+                    </div>
+                </div>
             </div>
         </div>
         
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="stats-card bg-warning text-white">
-                <div class="stats-number"><?= number_format($stats['pending_requests']) ?></div>
-                <div class="stats-label">Đang xử lý</div>
-                <div class="stats-icon"><i class="fas fa-clock"></i></div>
+            <div class="stats-card" style="border-left: 4px solid #f59e0b;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stats-number" style="color: #f59e0b;"><?= number_format($stats['pending_requests']) ?></div>
+                        <div class="stats-label">Đang xử lý</div>
+                    </div>
+                    <div style="color: #f59e0b;">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                </div>
             </div>
         </div>
         
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="stats-card bg-success text-white">
-                <div class="stats-number"><?= number_format($stats['completed_requests']) ?></div>
-                <div class="stats-label">Đã hoàn thành</div>
-                <div class="stats-icon"><i class="fas fa-check-circle"></i></div>
-            </div>
-        </div>
-        
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="stats-card bg-info text-white">
-                <div class="stats-number"><?= number_format($stats['total_equipments']) ?></div>
-                <div class="stats-label">Thiết bị</div>
-                <div class="stats-icon"><i class="fas fa-desktop"></i></div>
-            </div>
-        </div>
+            <div class="stats-card" style="border-left: 4px solid #10b981;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stats-number" style="color: #10b981;"><?= number_format($stats['completed_requests']) ?></div>
+                        <div class="stats-label">Đã hoàn thành</div>
+                    </div>
                     <div style="color: #10b981;">
                         <i class="fas fa-check-circle fa-2x"></i>
                     </div>
@@ -142,7 +146,7 @@ ob_start();
         </div>
         
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="stats-card" style="border-left-color: #6366f1;">
+            <div class="stats-card" style="border-left: 4px solid #6366f1;">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <div class="stats-number" style="color: #6366f1;"><?= number_format($stats['total_equipments']) ?></div>

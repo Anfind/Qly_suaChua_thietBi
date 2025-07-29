@@ -85,3 +85,5 @@ Theo dõi tình trạng từng thiết bị theo thời gian thực.
 Dễ dàng thống kê, truy vết lịch sử từng lần sửa chữa.
 
 Quản trị linh hoạt, mở rộng cho các lĩnh vực khác.
+
+xcopy "d:\An\Qly_suaChua_thietBi" "D:\Xampp\htdocs\Qly_suaChua_thietBi" /E /H /Y /I

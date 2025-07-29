@@ -88,32 +88,30 @@ body {
 
 /* Stats Cards */
 .stats-card {
-    background: linear-gradient(135deg, var(--primary-color), #0056b3);
-    color: white;
+    background: white;
+    border: 1px solid #e2e8f0;
     border-radius: var(--border-radius-lg);
     padding: var(--spacing-lg);
-    transition: transform 0.2s ease;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm);
 }
 
 .stats-card:hover {
     transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
 }
 
 .stats-number {
     font-size: 2.5rem;
     font-weight: 700;
     line-height: 1;
+    margin-bottom: 0.25rem;
 }
 
 .stats-label {
     font-size: 0.875rem;
-    opacity: 0.9;
-    margin-top: var(--spacing-xs);
-}
-
-.stats-icon {
-    font-size: 2rem;
-    opacity: 0.8;
+    color: #64748b;
+    font-weight: 500;
 }
 
 /* Status Badges */

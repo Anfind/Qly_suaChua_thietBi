@@ -15,6 +15,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Custom CSS -->
+    <link href="<?= url('assets/css/style.css') ?>" rel="stylesheet">
+    
+    <!-- Inline CSS for additional styling -->
     <style>
         :root {
             --primary-color: #2563eb;
@@ -38,6 +41,35 @@
             background-color: var(--light-color);
             color: var(--dark-color);
             line-height: 1.6;
+        }
+        
+        /* Stats Cards */
+        .stats-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            height: 100%;
+        }
+
+        .stats-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 0.25rem;
+        }
+
+        .stats-label {
+            font-size: 0.875rem;
+            color: #64748b;
+            font-weight: 500;
         }
         
         /* Sidebar */
