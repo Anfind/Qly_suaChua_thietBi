@@ -108,8 +108,8 @@ else {
     } else {
         // Các role khác (logistics, clerk)
         $role_conditions = [
-            'logistics' => "s.code IN ('PENDING_HANDOVER', 'RETRIEVED')",
-            'clerk' => "s.code IN ('HANDED_TO_CLERK', 'REPAIR_COMPLETED')"
+            'logistics' => "s.code IN ('PENDING_HANDOVER', 'LOGISTICS_RECEIVED', 'RETRIEVED')",
+            'clerk' => "s.code IN ('LOGISTICS_HANDOVER', 'HANDED_TO_CLERK', 'REPAIR_COMPLETED')"
         ];
         
         $condition = $role_conditions[$user['role_name']] ?? "1=1";

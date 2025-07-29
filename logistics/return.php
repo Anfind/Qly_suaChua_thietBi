@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../utils/notification_helpers.php';
 require_role('logistics');
 
 $controller = new RepairController();
@@ -65,6 +66,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
         
         $request = $db->fetch("SELECT request_code FROM repair_requests WHERE id = ?", [$request_id]);
+        
+        // Gửi thông báo hoàn thành quy trình
+        notifyProcessCompleted($request_id, $request['request_code'], $user['id']);
+        
         redirect('index.php', 'Đã trả lại thiết bị đơn ' . $request['request_code'] . ' thành công', 'success');
         
     } catch (Exception $e) {

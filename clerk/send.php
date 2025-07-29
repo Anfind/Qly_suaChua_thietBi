@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../utils/notification_helpers.php';
 
 // Debug user role trước khi require_role
 $current_user = current_user();
@@ -14,9 +15,6 @@ $db = Database::getInstance();
 $error = '';
 $success = '';
 
-// Lấy danh sách phòng ban để làm dropdown đơn vị sửa chữa
-$departments = $db->fetchAll("SELECT id, code, name FROM departments WHERE status = 'active' ORDER BY name");
-
 // Lấy danh sách phòng kỹ thuật để tạo workflow
 $tech_departments = $db->fetchAll("SELECT id, code, name FROM departments WHERE status = 'active' AND code LIKE 'TECH_%' ORDER BY code");
 
@@ -30,21 +28,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         $request_id = (int)$_POST['request_id'];
         $notes = $_POST['notes'] ?? '';
-        $repair_company = $_POST['repair_company'] ?? '';
-        $repair_company_other = $_POST['repair_company_other'] ?? '';
         $estimated_completion = $_POST['estimated_completion'] ?? '';
         $estimated_cost = $_POST['estimated_cost'] ?? '';
         $workflow_departments = $_POST['workflow_departments'] ?? [];
         $use_workflow_template = $_POST['use_workflow_template'] ?? '';
-        
-        // Nếu chọn "other", sử dụng tên nhập tự do
-        if ($repair_company === 'other' && !empty($repair_company_other)) {
-            $repair_company = $repair_company_other;
-        } elseif ($repair_company !== 'other') {
-            // Lấy tên phòng ban từ database
-            $dept = $db->fetch("SELECT name FROM departments WHERE id = ?", [$repair_company]);
-            $repair_company = $dept ? $dept['name'] : $repair_company;
-        }
         
         // Xử lý workflow departments
         $workflow_dept_ids = [];
@@ -57,6 +44,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (!empty($workflow_departments)) {
             // Sử dụng danh sách phòng ban được chọn thủ công
             $workflow_dept_ids = array_filter(array_map('intval', $workflow_departments));
+        }
+        
+        // Kiểm tra workflow bắt buộc
+        if (empty($workflow_dept_ids)) {
+            throw new Exception('Vui lòng chọn quy trình sửa chữa (template hoặc phòng ban thủ công)');
         }
         
         // Kiểm tra quyền user hiện tại
@@ -82,9 +74,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Thêm thông tin vào notes
         $full_notes = $notes;
-        if ($repair_company) {
-            $full_notes = "Đơn vị sửa chữa: " . $repair_company . "\n" . $notes;
-        }
         if ($estimated_completion) {
             $full_notes .= "\nDự kiến hoàn thành: " . $estimated_completion;
         }
@@ -120,48 +109,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'created_at' => date('Y-m-d H:i:s')
         ]);
         
-        // Tạo workflow steps nếu có
-        if (!empty($workflow_dept_ids)) {
-            try {
-                $departments_json = json_encode($workflow_dept_ids);
-                $db->query("CALL CreateWorkflowSteps(?, ?, ?)", [$request_id, $departments_json, $user['id']]);
-                
-                // Cập nhật trạng thái thành IN_PROGRESS cho step đầu tiên
-                $db->query(
-                    "UPDATE repair_requests SET current_status_id = (SELECT id FROM repair_statuses WHERE code = 'IN_PROGRESS') WHERE id = ?",
-                    [$request_id]
-                );
-                
-                // Cập nhật step đầu tiên thành in_progress
-                $db->query(
-                    "UPDATE repair_workflow_steps 
-                     SET status = 'in_progress', started_at = NOW() 
-                     WHERE request_id = ? AND step_order = 1",
-                    [$request_id]
-                );
-                
-                // Thêm log cho workflow
-                $workflow_log = "Tạo quy trình sửa chữa đa phòng ban:\n";
-                foreach ($workflow_dept_ids as $index => $dept_id) {
-                    $dept_info = $db->fetch("SELECT name FROM departments WHERE id = ?", [$dept_id]);
-                    $workflow_log .= "Bước " . ($index + 1) . ": " . ($dept_info['name'] ?? 'N/A') . "\n";
-                }
-                
-                $db->insert('repair_status_history', [
-                    'request_id' => $request_id,
-                    'status_id' => $db->fetch("SELECT id FROM repair_statuses WHERE code = 'IN_PROGRESS'")['id'],
-                    'user_id' => $user['id'],
-                    'notes' => $workflow_log,
-                    'created_at' => date('Y-m-d H:i:s')
-                ]);
-                
-                $success = 'Đã tạo quy trình sửa chữa đa phòng ban thành công';
-            } catch (Exception $e) {
-                error_log("Workflow creation error: " . $e->getMessage());
-                $success = 'Đã chuyển thiết bị đến sửa chữa thành công (chưa tạo được workflow)';
+        // Gửi thông báo workflow
+        notifyClerkSentToRepair($request_id, $request['request_code'], $user['id'], $workflow_dept_ids);
+        
+        // Tạo workflow steps
+        try {
+            $departments_json = json_encode($workflow_dept_ids);
+            $db->query("CALL CreateWorkflowSteps(?, ?, ?)", [$request_id, $departments_json, $user['id']]);
+            
+            // Cập nhật trạng thái thành IN_PROGRESS cho step đầu tiên
+            $db->query(
+                "UPDATE repair_requests SET current_status_id = (SELECT id FROM repair_statuses WHERE code = 'IN_PROGRESS') WHERE id = ?",
+                [$request_id]
+            );
+            
+            // Cập nhật step đầu tiên thành in_progress
+            $db->query(
+                "UPDATE repair_workflow_steps 
+                 SET status = 'in_progress', started_at = NOW() 
+                 WHERE request_id = ? AND step_order = 1",
+                [$request_id]
+            );
+            
+            // Thêm log cho workflow
+            $workflow_log = "Tạo quy trình sửa chữa đa phòng ban:\n";
+            foreach ($workflow_dept_ids as $index => $dept_id) {
+                $dept_info = $db->fetch("SELECT name FROM departments WHERE id = ?", [$dept_id]);
+                $workflow_log .= "Bước " . ($index + 1) . ": " . ($dept_info['name'] ?? 'N/A') . "\n";
             }
-        } else {
-            $success = 'Đã chuyển thiết bị đến sửa chữa thành công';
+            
+            $db->insert('repair_status_history', [
+                'request_id' => $request_id,
+                'status_id' => $db->fetch("SELECT id FROM repair_statuses WHERE code = 'IN_PROGRESS'")['id'],
+                'user_id' => $user['id'],
+                'notes' => $workflow_log,
+                'created_at' => date('Y-m-d H:i:s')
+            ]);
+            
+            $success = 'Đã tạo quy trình sửa chữa đa phòng ban thành công';
+        } catch (Exception $e) {
+            error_log("Workflow creation error: " . $e->getMessage());
+            throw new Exception('Có lỗi khi tạo quy trình sửa chữa: ' . $e->getMessage());
         }
         
     } catch (Exception $e) {
@@ -182,7 +170,7 @@ if (isset($_GET['id'])) {
          LEFT JOIN users u ON r.requester_id = u.id
          LEFT JOIN departments d ON u.department_id = d.id
          LEFT JOIN repair_statuses s ON r.current_status_id = s.id
-         WHERE r.id = ? AND s.code = 'HANDED_TO_CLERK'",
+         WHERE r.id = ? AND s.code IN ('LOGISTICS_HANDOVER', 'HANDED_TO_CLERK')",
         [$request_id]
     );
     
@@ -274,26 +262,16 @@ ob_start();
                 <div class="row">
                     <div class="col-md-6">
                         <div class="mb-3">
-                            <label for="repair_company" class="form-label">Đơn vị sửa chữa <span class="text-danger">*</span></label>
-                            <select name="repair_company" id="repair_company" class="form-select" required>
-                                <option value="">-- Chọn đơn vị sửa chữa --</option>
-                                <?php foreach ($departments as $dept): ?>
-                                    <option value="<?= $dept['id'] ?>"><?= e($dept['name']) ?> (<?= e($dept['code']) ?>)</option>
-                                <?php endforeach; ?>
-                                <option value="other">🔧 Đơn vị khác (nhập tự do)</option>
-                            </select>
-                        </div>
-                        <div class="mb-3" id="other_company_div" style="display: none;">
-                            <label for="repair_company_other" class="form-label">Tên đơn vị sửa chữa khác</label>
-                            <input type="text" name="repair_company_other" id="repair_company_other" class="form-control" 
-                                   placeholder="Nhập tên đơn vị/công ty sửa chữa...">
+                            <label for="estimated_completion" class="form-label">Dự kiến hoàn thành</label>
+                            <input type="date" name="estimated_completion" id="estimated_completion" 
+                                   class="form-control" min="<?= date('Y-m-d') ?>">
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="mb-3">
-                            <label for="estimated_completion" class="form-label">Dự kiến hoàn thành</label>
-                            <input type="date" name="estimated_completion" id="estimated_completion" 
-                                   class="form-control" min="<?= date('Y-m-d') ?>">
+                            <label for="estimated_cost" class="form-label">Dự kiến chi phí (VNĐ)</label>
+                            <input type="number" name="estimated_cost" id="estimated_cost" class="form-control" 
+                                   placeholder="0" min="0" step="1000">
                         </div>
                     </div>
                 </div>
@@ -305,7 +283,7 @@ ob_start();
                             <div class="card-header bg-primary text-white">
                                 <h6 class="mb-0">
                                     <i class="fas fa-project-diagram me-2"></i>
-                                    Quy trình sửa chữa đa phòng ban (Tùy chọn)
+                                    Quy trình sửa chữa đa phòng ban <span class="text-warning">*</span>
                                 </h6>
                             </div>
                             <div class="card-body">
@@ -353,7 +331,7 @@ ob_start();
                                 
                                 <div class="alert alert-info">
                                     <i class="fas fa-info-circle me-2"></i>
-                                    <strong>Lưu ý:</strong> Nếu chọn quy trình đa phòng ban, mỗi phòng sẽ lần lượt thực hiện phần việc của mình. 
+                                    <strong>Lưu ý:</strong> Bắt buộc phải chọn quy trình sửa chữa. Mỗi phòng sẽ lần lượt thực hiện phần việc của mình theo thứ tự. 
                                     Phòng cuối cùng hoàn thành sẽ chuyển đơn sang trạng thái "Đã sửa xong".
                                 </div>
                             </div>
@@ -362,19 +340,13 @@ ob_start();
                 </div>
                 
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-12">
                         <div class="mb-3">
-                            <label for="estimated_cost" class="form-label">Dự kiến chi phí (VNĐ)</label>
-                            <input type="number" name="estimated_cost" id="estimated_cost" class="form-control" 
-                                   placeholder="0" min="0" step="1000">
+                            <label for="notes" class="form-label">Ghi chú chuyển sửa chữa</label>
+                            <textarea name="notes" id="notes" class="form-control" rows="4" 
+                                      placeholder="Ghi chú về việc chuyển sửa chữa, yêu cầu đặc biệt..."></textarea>
                         </div>
                     </div>
-                </div>
-                
-                <div class="mb-3">
-                    <label for="notes" class="form-label">Ghi chú chuyển sửa chữa</label>
-                    <textarea name="notes" id="notes" class="form-control" rows="4" 
-                              placeholder="Ghi chú về việc chuyển sửa chữa, yêu cầu đặc biệt..."></textarea>
                 </div>
                 
                 <div class="d-flex gap-2">
@@ -407,24 +379,8 @@ $content = ob_get_clean();
 $custom_js = "
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const repairCompanySelect = document.getElementById('repair_company');
-    const otherCompanyDiv = document.getElementById('other_company_div');
-    const otherCompanyInput = document.getElementById('repair_company_other');
     const workflowTemplateSelect = document.getElementById('use_workflow_template');
     const workflowCheckboxes = document.querySelectorAll('.workflow-dept-checkbox');
-    
-    // Hiển thị/ẩn trường nhập tự do
-    repairCompanySelect.addEventListener('change', function() {
-        if (this.value === 'other') {
-            otherCompanyDiv.style.display = 'block';
-            otherCompanyInput.setAttribute('required', '');
-            otherCompanyInput.focus();
-        } else {
-            otherCompanyDiv.style.display = 'none';
-            otherCompanyInput.removeAttribute('required');
-            otherCompanyInput.value = '';
-        }
-    });
     
     // Xử lý workflow template
     workflowTemplateSelect.addEventListener('change', function() {
@@ -462,31 +418,17 @@ document.addEventListener('DOMContentLoaded', function() {
     // Validation trước khi submit
     const form = document.querySelector('form');
     form.addEventListener('submit', function(e) {
-        const repairCompany = repairCompanySelect.value;
-        const otherCompanyValue = otherCompanyInput.value.trim();
-        
-        if (repairCompany === 'other' && !otherCompanyValue) {
-            e.preventDefault();
-            alert('Vui lòng nhập tên đơn vị sửa chữa khác');
-            otherCompanyInput.focus();
-            return false;
-        }
-        
-        if (!repairCompany) {
-            e.preventDefault();
-            alert('Vui lòng chọn đơn vị sửa chữa');
-            repairCompanySelect.focus();
-            return false;
-        }
-        
         // Check if workflow is selected
         const hasWorkflow = workflowTemplateSelect.value || 
             Array.from(workflowCheckboxes).some(cb => cb.checked);
         
-        let confirmMessage = 'Xác nhận chuyển thiết bị đến đơn vị sửa chữa?';
-        if (hasWorkflow) {
-            confirmMessage = 'Xác nhận tạo quy trình sửa chữa đa phòng ban và chuyển thiết bị?';
+        if (!hasWorkflow) {
+            e.preventDefault();
+            alert('Vui lòng chọn quy trình sửa chữa (template hoặc phòng ban thủ công)');
+            return false;
         }
+        
+        let confirmMessage = 'Xác nhận tạo quy trình sửa chữa đa phòng ban và chuyển thiết bị?';
         
         return confirm(confirmMessage);
     });

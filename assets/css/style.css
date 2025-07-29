@@ -50,6 +50,98 @@ body {
     font-size: 14px;
     line-height: 1.6;
     color: var(--dark-color);
+}
+
+/* Form Validation Styles */
+.form-control.is-invalid,
+.form-select.is-invalid {
+    border-color: var(--danger-color);
+    box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+}
+
+.form-control.is-valid,
+.form-select.is-valid {
+    border-color: var(--success-color);
+    box-shadow: 0 0 0 0.25rem rgba(40, 167, 69, 0.25);
+}
+
+.invalid-feedback {
+    display: block;
+    font-size: 0.875rem;
+    color: var(--danger-color);
+}
+
+.was-validated .form-control:invalid,
+.was-validated .form-select:invalid {
+    border-color: var(--danger-color);
+}
+
+.was-validated .form-control:valid,
+.was-validated .form-select:valid {
+    border-color: var(--success-color);
+}
+
+/* Input Group with Validation */
+.input-group .form-control.is-invalid {
+    z-index: 2;
+}
+
+.input-group .form-control.is-invalid + .btn {
+    border-color: var(--danger-color);
+}
+
+/* Password Strength Indicator */
+.password-strength {
+    height: 4px;
+    border-radius: 2px;
+    margin-top: 0.5rem;
+    background-color: #e9ecef;
+    overflow: hidden;
+}
+
+.password-strength .strength-bar {
+    height: 100%;
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.strength-weak { background-color: var(--danger-color); }
+.strength-fair { background-color: var(--warning-color); }
+.strength-good { background-color: var(--info-color); }
+.strength-strong { background-color: var(--success-color); }
+
+/* User Management Specific */
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.user-status-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.user-actions .btn {
+    margin: 0 0.125rem;
+}
+
+/* Modal Improvements */
+.modal-lg {
+    max-width: 800px;
+}
+
+.modal-header {
+    background-color: var(--light-color);
+    border-bottom: 1px solid #dee2e6;
+}
+
+.modal-footer {
+    background-color: var(--light-color);
+    border-top: 1px solid #dee2e6;
+}
+    line-height: 1.6;
+    color: var(--dark-color);
     background-color: #f5f6fa;
 }
 

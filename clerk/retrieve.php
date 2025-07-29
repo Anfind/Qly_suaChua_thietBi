@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../utils/notification_helpers.php';
 
 // Debug user role trước khi require_role
 $current_user = current_user();
@@ -116,6 +117,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'actual_cost' => $actual_cost,
             'notes' => $notes
         ]);
+        
+        // Gửi thông báo bằng hệ thống notification mới
+        $request_info = $db->fetch("SELECT request_code FROM repair_requests WHERE id = ?", [$request_id]);
+        notifyEquipmentRetrieved($request_id, $request_info['request_code'], $user['id']);
         
         $success = 'Đã thu hồi thiết bị thành công';
         

@@ -126,6 +126,23 @@ class User {
      * Tạo user mới
      */
     public function create($data) {
+        // Validate required fields
+        if (empty($data['username'])) {
+            throw new Exception('Username không được để trống');
+        }
+        
+        if (empty($data['password'])) {
+            throw new Exception('Mật khẩu không được để trống');
+        }
+        
+        if (empty($data['full_name'])) {
+            throw new Exception('Họ tên không được để trống');
+        }
+        
+        if (empty($data['role_id'])) {
+            throw new Exception('Vai trò không được để trống');
+        }
+        
         // Kiểm tra username đã tồn tại
         if ($this->usernameExists($data['username'])) {
             throw new Exception('Tên đăng nhập đã tồn tại');
@@ -136,15 +153,31 @@ class User {
             throw new Exception('Email đã tồn tại');
         }
         
+        // Validate role exists
+        $role = $this->db->fetch("SELECT id FROM roles WHERE id = ?", [$data['role_id']]);
+        if (!$role) {
+            throw new Exception('Vai trò không tồn tại');
+        }
+        
+        // Validate department if provided
+        if (!empty($data['department_id'])) {
+            $dept = $this->db->fetch("SELECT id FROM departments WHERE id = ? AND status = 'active'", [$data['department_id']]);
+            if (!$dept) {
+                throw new Exception('Đơn vị không tồn tại hoặc đã bị vô hiệu hóa');
+            }
+        }
+        
         $userData = [
-            'username' => $data['username'],
-            'password' => $data['password'],
-            'full_name' => $data['full_name'],
-            'email' => $data['email'] ?? null,
-            'phone' => $data['phone'] ?? null,
+            'username' => trim($data['username']),
+            'password' => $data['password'], // Password should already be hashed from controller
+            'full_name' => trim($data['full_name']),
+            'email' => !empty($data['email']) ? trim($data['email']) : null,
+            'phone' => !empty($data['phone']) ? trim($data['phone']) : null,
             'department_id' => $data['department_id'] ?? null,
             'role_id' => $data['role_id'],
-            'status' => $data['status'] ?? 'active'
+            'status' => $data['status'] ?? 'active',
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
         ];
         
         return $this->db->insert('users', $userData);

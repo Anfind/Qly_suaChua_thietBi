@@ -48,6 +48,61 @@
             background: white;
             border: 1px solid #e2e8f0;
             border-radius: 0.5rem;
+        }
+        
+        /* Notification Styles */
+        .notification-dropdown {
+            border: none;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-radius: 0.5rem;
+        }
+        
+        .notification-item {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            transition: background-color 0.2s;
+        }
+        
+        .notification-item:hover {
+            background-color: #f8fafc;
+        }
+        
+        .notification-item.unread {
+            background-color: #f0f9ff;
+            border-left: 3px solid var(--primary-color);
+        }
+        
+        .notification-title {
+            font-weight: 500;
+            font-size: 0.875rem;
+            line-height: 1.2;
+            margin-bottom: 0.25rem;
+        }
+        
+        .notification-message {
+            font-size: 0.8125rem;
+            line-height: 1.3;
+            margin-bottom: 0.25rem;
+        }
+        
+        .notification-time {
+            font-size: 0.75rem;
+        }
+        
+        .notification-dot {
+            align-self: flex-start;
+            margin-top: 0.25rem;
+        }
+        
+        @keyframes bellShake {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(15deg); }
+            75% { transform: rotate(-15deg); }
+        }
+        
+        .notification-bell-animate {
+            animation: bellShake 0.6s ease-in-out;
+        }
             padding: 1.5rem;
             transition: all 0.2s ease;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -465,6 +520,20 @@
     <?php 
     $user = current_user();
     $current_page = basename($_SERVER['PHP_SELF'], '.php');
+    
+    // Include notification helpers
+    if (file_exists(__DIR__ . '/../utils/notification_helpers.php')) {
+        require_once __DIR__ . '/../utils/notification_helpers.php';
+    }
+    
+    // Get user notifications - initialize with default values
+    $notification_count = 0;
+    $recent_notifications = [];
+    
+    if ($user && function_exists('getUnreadNotificationCount')) {
+        $notification_count = getUnreadNotificationCount($user['id']);
+        $recent_notifications = getRecentNotifications($user['id'], 5);
+    }
     ?>
     
     <!-- Sidebar -->
@@ -606,17 +675,71 @@
                 <div class="user-menu">
                     <!-- Notifications -->
                     <div class="dropdown">
-                        <button class="btn btn-link position-relative" type="button" data-bs-toggle="dropdown">
+                        <button class="btn btn-link position-relative" type="button" data-bs-toggle="dropdown" id="notificationDropdown">
                             <i class="fas fa-bell"></i>
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                                3
-                            </span>
+                            <?php if ($notification_count > 0): ?>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="notificationBadge">
+                                    <?= $notification_count > 99 ? '99+' : $notification_count ?>
+                                </span>
+                            <?php endif; ?>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-info-circle me-2"></i>Thông báo 1</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-exclamation-triangle me-2"></i>Thông báo 2</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#">Xem tất cả</a></li>
+                        <ul class="dropdown-menu dropdown-menu-end notification-dropdown" style="width: 350px; max-height: 400px; overflow-y: auto;">
+                            <li class="dropdown-header d-flex justify-content-between align-items-center">
+                                <span><strong>Thông báo</strong></span>
+                                <?php if ($notification_count > 0): ?>
+                                    <button class="btn btn-sm btn-link p-0" onclick="markAllAsRead()">
+                                        <small>Đánh dấu tất cả đã đọc</small>
+                                    </button>
+                                <?php endif; ?>
+                            </li>
+                            <li><hr class="dropdown-divider m-0"></li>
+                            
+                            <?php if (empty($recent_notifications)): ?>
+                                <li class="px-3 py-4 text-center text-muted">
+                                    <i class="fas fa-bell-slash fa-2x mb-2"></i><br>
+                                    Không có thông báo mới
+                                </li>
+                            <?php else: ?>
+                                <?php foreach ($recent_notifications as $notification): ?>
+                                    <li>
+                                        <a class="dropdown-item notification-item <?= $notification['is_read'] ? '' : 'unread' ?>" 
+                                           href="<?= $notification['action_url'] ? url($notification['action_url']) : '#' ?>"
+                                           onclick="markAsRead(<?= $notification['id'] ?>)">
+                                            <div class="d-flex">
+                                                <div class="notification-icon me-2">
+                                                    <?php
+                                                    $icon = 'fas fa-info-circle';
+                                                    $color = 'text-info';
+                                                    switch ($notification['type']) {
+                                                        case 'success': $icon = 'fas fa-check-circle'; $color = 'text-success'; break;
+                                                        case 'warning': $icon = 'fas fa-exclamation-triangle'; $color = 'text-warning'; break;
+                                                        case 'danger': $icon = 'fas fa-times-circle'; $color = 'text-danger'; break;
+                                                    }
+                                                    ?>
+                                                    <i class="<?= $icon ?> <?= $color ?>"></i>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <div class="notification-title"><?= e($notification['title']) ?></div>
+                                                    <div class="notification-message text-muted small"><?= e($notification['message']) ?></div>
+                                                    <div class="notification-time text-muted" style="font-size: 0.75rem;"><?= $notification['time_ago'] ?></div>
+                                                </div>
+                                                <?php if (!$notification['is_read']): ?>
+                                                    <div class="notification-dot">
+                                                        <span class="badge bg-primary rounded-circle" style="width: 8px; height: 8px; padding: 0;"></span>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+                                        </a>
+                                    </li>
+                                <?php endforeach; ?>
+                                
+                                <li><hr class="dropdown-divider m-0"></li>
+                                <li class="text-center py-2">
+                                    <a class="dropdown-item text-center" href="<?= url('notifications.php') ?>">
+                                        <small>Xem tất cả thông báo</small>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
                         </ul>
                     </div>
                     
@@ -730,6 +853,221 @@
                 }, 3000);
             }
         });
+        
+        // ===============================
+        // NOTIFICATION SYSTEM
+        // ===============================
+        
+        // Mark single notification as read
+        function markAsRead(notificationId) {
+            if (!notificationId) return;
+            
+            fetch('<?= url("api/notifications.php") ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'mark_read',
+                    notification_id: notificationId
+                })
+            }).then(response => response.json())
+              .then(data => {
+                  if (data.success) {
+                      updateNotificationBadge();
+                  }
+              }).catch(err => console.error('Error marking notification as read:', err));
+        }
+        
+        // Mark all notifications as read
+        function markAllAsRead() {
+            fetch('<?= url("api/notifications.php") ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'mark_all_read'
+                })
+            }).then(response => response.json())
+              .then(data => {
+                  if (data.success) {
+                      location.reload(); // Reload to update UI
+                  }
+              }).catch(err => console.error('Error marking all notifications as read:', err));
+        }
+        
+        // Update notification badge count
+        function updateNotificationBadge() {
+            fetch('<?= url("api/notifications.php") ?>?action=count')
+                .then(response => response.json())
+                .then(data => {
+                    const badge = document.getElementById('notificationBadge');
+                    if (data.count > 0) {
+                        if (badge) {
+                            badge.textContent = data.count > 99 ? '99+' : data.count;
+                        } else {
+                            // Create badge if it doesn't exist
+                            const button = document.getElementById('notificationDropdown');
+                            const newBadge = document.createElement('span');
+                            newBadge.id = 'notificationBadge';
+                            newBadge.className = 'position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger';
+                            newBadge.textContent = data.count > 99 ? '99+' : data.count;
+                            button.appendChild(newBadge);
+                        }
+                    } else {
+                        if (badge) {
+                            badge.remove();
+                        }
+                    }
+                })
+                .catch(err => console.error('Error updating notification badge:', err));
+        }
+        
+        // Check for new notifications periodically
+        function checkNewNotifications() {
+            fetch('<?= url("api/notifications.php") ?>?action=recent&limit=1')
+                .then(response => response.json())
+                .then(data => {
+                    const lastCheck = localStorage.getItem('lastNotificationCheck');
+                    const currentTime = Math.floor(Date.now() / 1000);
+                    
+                    if (data.notifications && data.notifications.length > 0) {
+                        const latestNotification = data.notifications[0];
+                        const notificationTime = new Date(latestNotification.created_at).getTime() / 1000;
+                        
+                        // If this is a new notification since last check
+                        if (!lastCheck || notificationTime > parseInt(lastCheck)) {
+                            // Animate bell icon
+                            const bellIcon = document.querySelector('#notificationDropdown i');
+                            if (bellIcon) {
+                                bellIcon.classList.add('notification-bell-animate');
+                                setTimeout(() => {
+                                    bellIcon.classList.remove('notification-bell-animate');
+                                }, 600);
+                            }
+                            
+                            // Show toast notification
+                            showToastNotification(latestNotification);
+                            
+                            // Update badge
+                            updateNotificationBadge();
+                        }
+                    }
+                    
+                    localStorage.setItem('lastNotificationCheck', currentTime);
+                })
+                .catch(err => console.error('Error checking new notifications:', err));
+        }
+        
+        // Show toast notification for new items
+        function showToastNotification(notification) {
+            // Only show if user is not on the action page
+            if (notification.action_url && !window.location.href.includes(notification.action_url)) {
+                // Create toast container if it doesn't exist
+                let toastContainer = document.getElementById('toastContainer');
+                if (!toastContainer) {
+                    toastContainer = document.createElement('div');
+                    toastContainer.id = 'toastContainer';
+                    toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+                    toastContainer.style.zIndex = '9999';
+                    document.body.appendChild(toastContainer);
+                }
+                
+                // Create toast element
+                const toastId = 'toast_' + notification.id;
+                const toastHtml = `
+                    <div id="${toastId}" class="toast align-items-center text-white bg-primary border-0" role="alert">
+                        <div class="d-flex">
+                            <div class="toast-body">
+                                <strong>${notification.title}</strong><br>
+                                <small>${notification.message}</small>
+                            </div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                        </div>
+                    </div>
+                `;
+                
+                toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+                
+                // Show toast
+                const toastElement = document.getElementById(toastId);
+                const toast = new bootstrap.Toast(toastElement, {
+                    autohide: true,
+                    delay: 5000
+                });
+                toast.show();
+                
+                // Remove from DOM after hiding
+                toastElement.addEventListener('hidden.bs.toast', () => {
+                    toastElement.remove();
+                });
+                
+                // Click to navigate
+                toastElement.addEventListener('click', () => {
+                    if (notification.action_url) {
+                        window.location.href = '<?= url("") ?>' + notification.action_url;
+                    }
+                });
+            }
+        }
+        
+        // Initialize notification system
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check for new notifications every 30 seconds
+            setInterval(checkNewNotifications, 30000);
+            
+            // Initial check after 2 seconds
+            setTimeout(checkNewNotifications, 2000);
+            
+            // Update badge when dropdown is opened
+            document.getElementById('notificationDropdown')?.addEventListener('click', function() {
+                setTimeout(updateNotificationBadge, 1000);
+            });
+        });
+        
+        // Mark single notification as read
+        function markAsRead(notificationId) {
+            fetch('<?= url("api/notifications.php") ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'mark_read',
+                    notification_id: notificationId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateNotificationBadge();
+                }
+            })
+            .catch(err => console.error('Error marking notification as read:', err));
+        }
+        
+        // Mark all notifications as read
+        function markAllAsRead() {
+            fetch('<?= url("api/notifications.php") ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'mark_all_read'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateNotificationBadge();
+                    // Reload the dropdown to show updated state
+                    location.reload();
+                }
+            })
+            .catch(err => console.error('Error marking all notifications as read:', err));
+        }
     </script>
     
     <?php if (isset($custom_js)): ?>

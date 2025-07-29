@@ -124,7 +124,9 @@ ob_start();
                         <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
                             <option value="">Tất cả trạng thái</option>
                             <option value="PENDING_HANDOVER" <?= ($_GET['status'] ?? '') === 'PENDING_HANDOVER' ? 'selected' : '' ?>><?= format_status_display('Chờ bàn giao') ?></option>
-                            <option value="HANDED_TO_CLERK" <?= ($_GET['status'] ?? '') === 'HANDED_TO_CLERK' ? 'selected' : '' ?>><?= format_status_display('Đã bàn giao cho văn thư') ?></option>
+                            <option value="LOGISTICS_RECEIVED" <?= ($_GET['status'] ?? '') === 'LOGISTICS_RECEIVED' ? 'selected' : '' ?>><?= format_status_display('Giao liên đã nhận đề xuất') ?></option>
+                            <option value="LOGISTICS_HANDOVER" <?= ($_GET['status'] ?? '') === 'LOGISTICS_HANDOVER' ? 'selected' : '' ?>><?= format_status_display('Giao liên đã bàn giao cho văn thư') ?></option>
+                            <option value="HANDED_TO_CLERK" <?= ($_GET['status'] ?? '') === 'HANDED_TO_CLERK' ? 'selected' : '' ?>><?= format_status_display('Đã đến văn thư – chờ xử lý') ?></option>
                             <option value="SENT_TO_REPAIR" <?= ($_GET['status'] ?? '') === 'SENT_TO_REPAIR' ? 'selected' : '' ?>>Đã chuyển đơn vị sửa chữa</option>
                             <option value="IN_PROGRESS" <?= ($_GET['status'] ?? '') === 'IN_PROGRESS' ? 'selected' : '' ?>>Đang sửa chữa</option>
                             <option value="REPAIR_COMPLETED" <?= ($_GET['status'] ?? '') === 'REPAIR_COMPLETED' ? 'selected' : '' ?>>Đã sửa xong</option>

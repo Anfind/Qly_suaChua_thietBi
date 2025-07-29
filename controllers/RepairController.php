@@ -68,8 +68,12 @@ class RepairController {
      * Dashboard văn thư
      */
     private function clerkDashboard() {
-        $handed = $this->repairModel->getByStatus('HANDED_TO_CLERK');
+        $handed = $this->repairModel->getByStatus('LOGISTICS_HANDOVER');
+        $alsoHanded = $this->repairModel->getByStatus('HANDED_TO_CLERK'); // Để hỗ trợ dữ liệu cũ
         $completed = $this->repairModel->getByStatus('REPAIR_COMPLETED');
+        
+        // Gộp 2 danh sách lại
+        $handed = array_merge($handed, $alsoHanded);
         
         return compact('handed', 'completed');
     }
@@ -104,7 +108,7 @@ class RepairController {
         $allRequests = [];
         if (empty($filters['status'])) {
             // Lấy tất cả trạng thái
-            $statuses = ['PENDING_HANDOVER', 'HANDED_TO_CLERK', 'SENT_TO_REPAIR', 'IN_PROGRESS', 'REPAIR_COMPLETED', 'RETRIEVED'];
+            $statuses = ['PENDING_HANDOVER', 'LOGISTICS_RECEIVED', 'LOGISTICS_HANDOVER', 'HANDED_TO_CLERK', 'SENT_TO_REPAIR', 'IN_PROGRESS', 'REPAIR_COMPLETED', 'RETRIEVED'];
             foreach ($statuses as $status) {
                 $requests = $this->repairModel->getByStatus($status, $filters);
                 $allRequests[$status] = $requests;
@@ -123,33 +127,50 @@ class RepairController {
         require_role('requester');
         
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-            $user = current_user();
-            // Lấy tất cả thiết bị active thay vì chỉ theo department
-            $equipments = $this->equipmentModel->getAll(['status' => 'active']);
-            return compact('equipments');
+            // Không cần lấy equipments nữa vì người dùng sẽ tự nhập
+            return [];
         }
         
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 verify_csrf();
                 
+                // Validate thiết bị info
+                if (empty(trim($_POST['equipment_name']))) {
+                    throw new Exception('Vui lòng nhập tên thiết bị');
+                }
+                
+                if (empty(trim($_POST['equipment_location']))) {
+                    throw new Exception('Vui lòng nhập vị trí thiết bị');
+                }
+                
+                if (empty(trim($_POST['problem_description']))) {
+                    throw new Exception('Vui lòng mô tả tình trạng lỗi');
+                }
+                
+                // Tạo hoặc tìm thiết bị
+                $equipmentData = [
+                    'name' => trim($_POST['equipment_name']),
+                    'code' => !empty($_POST['equipment_code']) ? trim($_POST['equipment_code']) : null,
+                    'model' => !empty($_POST['equipment_model']) ? trim($_POST['equipment_model']) : null,
+                    'brand' => !empty($_POST['equipment_brand']) ? trim($_POST['equipment_brand']) : null,
+                    'location' => trim($_POST['equipment_location']),
+                    'department_id' => current_user()['department_id'],
+                    'type_id' => 1, // Default type - có thể cần sửa lại
+                    'status' => 'active'
+                ];
+                
+                // Tìm thiết bị có sẵn hoặc tạo mới
+                $equipment_id = $this->findOrCreateEquipment($equipmentData);
+                
                 $data = [
-                    'equipment_id' => $_POST['equipment_id'],
+                    'equipment_id' => $equipment_id,
                     'requester_id' => current_user()['id'],
-                    'problem_description' => $_POST['problem_description'],
+                    'problem_description' => trim($_POST['problem_description']),
                     'urgency_level' => $_POST['urgency_level'] ?? 'medium',
                     'images' => $_FILES['images'] ?? [],
                     'videos' => $_FILES['videos'] ?? []
                 ];
-                
-                // Validate
-                if (empty($data['equipment_id'])) {
-                    throw new Exception('Vui lòng chọn thiết bị');
-                }
-                
-                if (empty($data['problem_description'])) {
-                    throw new Exception('Vui lòng mô tả tình trạng lỗi');
-                }
                 
                 $request_code = $this->repairModel->create($data);
                 
@@ -158,12 +179,69 @@ class RepairController {
                 
             } catch (Exception $e) {
                 $error = $e->getMessage();
-                $user = current_user();
-                // Lấy tất cả thiết bị active thay vì chỉ theo department
-                $equipments = $this->equipmentModel->getAll(['status' => 'active']);
-                return compact('equipments', 'error');
+                return compact('error');
             }
         }
+    }
+    
+    /**
+     * Tìm hoặc tạo thiết bị mới
+     */
+    private function findOrCreateEquipment($equipmentData) {
+        // Nếu có mã thiết bị, tìm theo mã
+        if (!empty($equipmentData['code'])) {
+            $existing = $this->equipmentModel->getByCode($equipmentData['code']);
+            if ($existing) {
+                // Cập nhật thông tin nếu cần
+                $this->equipmentModel->update($existing['id'], [
+                    'name' => $equipmentData['name'],
+                    'model' => $equipmentData['model'],
+                    'brand' => $equipmentData['brand'],
+                    'location' => $equipmentData['location']
+                ]);
+                return $existing['id'];
+            }
+        }
+        
+        // Tìm thiết bị tương tự (cùng tên và vị trí)
+        $similar = $this->equipmentModel->findSimilar(
+            $equipmentData['name'], 
+            $equipmentData['location'], 
+            $equipmentData['department_id']
+        );
+        
+        if ($similar) {
+            return $similar['id'];
+        }
+        
+        // Tạo mã thiết bị nếu chưa có
+        if (empty($equipmentData['code'])) {
+            $equipmentData['code'] = $this->generateEquipmentCode($equipmentData['name']);
+        }
+        
+        // Tạo thiết bị mới
+        return $this->equipmentModel->create($equipmentData);
+    }
+    
+    /**
+     * Tạo mã thiết bị tự động
+     */
+    private function generateEquipmentCode($equipmentName) {
+        // Tạo prefix từ tên thiết bị
+        $prefix = strtoupper(substr(preg_replace('/[^a-zA-Z0-9]/', '', $equipmentName), 0, 4));
+        if (strlen($prefix) < 2) {
+            $prefix = 'EQ';
+        }
+        
+        // Tìm số thứ tự tiếp theo
+        $counter = 1;
+        do {
+            $code = $prefix . str_pad($counter, 3, '0', STR_PAD_LEFT);
+            $existing = $this->equipmentModel->getByCode($code);
+            $counter++;
+        } while ($existing && $counter <= 999);
+        
+        return $code;
     }
     
     /**

@@ -83,18 +83,28 @@ class Equipment {
      * Tạo thiết bị mới
      */
     public function create($data) {
-        // Kiểm tra mã thiết bị đã tồn tại
-        if ($this->codeExists($data['code'])) {
+        // Kiểm tra mã thiết bị đã tồn tại (nếu có)
+        if (!empty($data['code']) && $this->codeExists($data['code'])) {
             throw new Exception('Mã thiết bị đã tồn tại');
         }
         
-        // Validate type_id
+        // Lấy type_id mặc định nếu không có
         if (empty($data['type_id'])) {
-            throw new Exception('Loại thiết bị là bắt buộc');
+            $defaultType = $this->db->fetch("SELECT id FROM equipment_types WHERE name = 'Khác' OR name = 'General' LIMIT 1");
+            if (!$defaultType) {
+                // Tạo type mặc định nếu chưa có
+                $data['type_id'] = $this->db->insert('equipment_types', [
+                    'name' => 'Thiết bị khác',
+                    'description' => 'Thiết bị chung không phân loại cụ thể',
+                    'icon' => 'fas fa-desktop'
+                ]);
+            } else {
+                $data['type_id'] = $defaultType['id'];
+            }
         }
         
         $equipmentData = [
-            'code' => $data['code'],
+            'code' => $data['code'] ?? null,
             'name' => $data['name'],
             'model' => $data['model'] ?? null,
             'brand' => $data['brand'] ?? null,
@@ -107,7 +117,9 @@ class Equipment {
             'specifications' => $data['specifications'] ?? null,
             'image' => $data['image'] ?? null,
             'status' => $data['status'] ?? 'active',
-            'description' => $data['description'] ?? null
+            'description' => $data['description'] ?? null,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
         ];
         
         return $this->db->insert('equipments', $equipmentData);
@@ -266,6 +278,33 @@ class Equipment {
                 ORDER BY r.created_at DESC";
         
         return $this->db->fetchAll($sql, [$equipmentId]);
+    }
+    
+    /**
+     * Lấy thiết bị theo mã
+     */
+    public function getByCode($code) {
+        $sql = "SELECT e.*, t.name as type_name, t.icon as type_icon,
+                       d.name as department_name, d.code as department_code
+                FROM equipments e 
+                LEFT JOIN equipment_types t ON e.type_id = t.id 
+                LEFT JOIN departments d ON e.department_id = d.id 
+                WHERE e.code = ?";
+        
+        return $this->db->fetch($sql, [$code]);
+    }
+    
+    /**
+     * Tìm thiết bị tương tự
+     */
+    public function findSimilar($name, $location, $department_id) {
+        $sql = "SELECT e.*, t.name as type_name 
+                FROM equipments e 
+                LEFT JOIN equipment_types t ON e.type_id = t.id 
+                WHERE e.name = ? AND e.location = ? AND e.department_id = ? AND e.status = 'active'
+                LIMIT 1";
+        
+        return $this->db->fetch($sql, [$name, $location, $department_id]);
     }
 }
 ?>

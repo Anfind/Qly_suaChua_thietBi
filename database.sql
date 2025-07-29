@@ -108,6 +108,8 @@ CREATE TABLE repair_requests (
     estimated_completion DATE,
     actual_completion DATETIME,
     total_cost DECIMAL(15,2) DEFAULT 0,
+    logistics_received_at TIMESTAMP NULL COMMENT 'Thời gian giao liên nhận đề xuất',
+    logistics_handover_at TIMESTAMP NULL COMMENT 'Thời gian giao liên bàn giao cho văn thư',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (equipment_id) REFERENCES equipments(id) ON DELETE RESTRICT,
@@ -172,16 +174,18 @@ INSERT INTO roles (name, display_name, description) VALUES
 ('technician', 'Đơn vị sửa chữa', 'Thực hiện sửa chữa và cập nhật tiến độ'),
 ('admin', 'Quản trị viên', 'Quản lý toàn bộ hệ thống và cấu hình');
 
--- Chèn dữ liệu trạng thái
+-- Chèn dữ liệu trạng thái (đã cập nhật với 2 trạng thái mới cho giao liên)
 INSERT INTO repair_statuses (code, name, step_order, color, icon, description) VALUES
 ('PENDING_HANDOVER', 'Chờ bàn giao', 1, '#ffc107', 'fas fa-clock', 'Đơn vừa được tạo, chờ giao liên nhận thiết bị'),
-('HANDED_TO_CLERK', 'Đã bàn giao cho văn thư', 2, '#17a2b8', 'fas fa-hand-holding', 'Giao liên đã nhận và chuyển cho văn thư'),
-('SENT_TO_REPAIR', 'Đã chuyển đơn vị sửa chữa', 3, '#fd7e14', 'fas fa-shipping-fast', 'Văn thư đã chuyển thiết bị cho đơn vị sửa chữa'),
-('IN_PROGRESS', 'Đang sửa chữa', 4, '#007bff', 'fas fa-tools', 'Đơn vị sửa chữa đang thực hiện'),
-('REPAIR_COMPLETED', 'Đã sửa xong – chờ thu hồi', 5, '#28a745', 'fas fa-check-circle', 'Đơn vị sửa chữa đã hoàn thành'),
-('RETRIEVED', 'Đã thu hồi – chờ trả lại', 6, '#6f42c1', 'fas fa-undo', 'Văn thư đã thu hồi thiết bị'),
-('COMPLETED', 'Hoàn tất', 7, '#20c997', 'fas fa-flag-checkered', 'Đã trả lại thiết bị cho người đề xuất'),
-('CANCELLED', 'Đã hủy', 8, '#dc3545', 'fas fa-times-circle', 'Đơn bị hủy bỏ');
+('LOGISTICS_RECEIVED', 'Giao liên đã nhận đề xuất', 2, '#20c997', 'fas fa-inbox', 'Giao liên đã xác nhận nhận được đề xuất từ người đề xuất'),
+('LOGISTICS_HANDOVER', 'Giao liên đã bàn giao cho văn thư', 3, '#17a2b8', 'fas fa-hand-holding', 'Giao liên đã kiểm tra và bàn giao thiết bị cho văn thư'),
+('HANDED_TO_CLERK', 'Đã đến văn thư – chờ xử lý', 4, '#17a2b8', 'fas fa-hand-holding', 'Văn thư đã nhận thiết bị từ giao liên'),
+('SENT_TO_REPAIR', 'Đã chuyển đơn vị sửa chữa', 5, '#fd7e14', 'fas fa-shipping-fast', 'Văn thư đã chuyển thiết bị cho đơn vị sửa chữa'),
+('IN_PROGRESS', 'Đang sửa chữa', 6, '#007bff', 'fas fa-tools', 'Đơn vị sửa chữa đang thực hiện'),
+('REPAIR_COMPLETED', 'Đã sửa xong – chờ thu hồi', 7, '#28a745', 'fas fa-check-circle', 'Đơn vị sửa chữa đã hoàn thành'),
+('RETRIEVED', 'Đã thu hồi – chờ trả lại', 8, '#6f42c1', 'fas fa-undo', 'Văn thư đã thu hồi thiết bị'),
+('COMPLETED', 'Hoàn tất', 9, '#20c997', 'fas fa-flag-checkered', 'Đã trả lại thiết bị cho người đề xuất'),
+('CANCELLED', 'Đã hủy', 10, '#dc3545', 'fas fa-times-circle', 'Đơn bị hủy bỏ');
 
 -- Chèn dữ liệu đơn vị mẫu
 INSERT INTO departments (code, name, address, phone, email, manager_name) VALUES
@@ -234,6 +238,8 @@ INSERT INTO users (username, password, full_name, email, role_id, department_id,
 CREATE INDEX idx_repair_requests_status ON repair_requests(current_status_id);
 CREATE INDEX idx_repair_requests_requester ON repair_requests(requester_id);
 CREATE INDEX idx_repair_requests_equipment ON repair_requests(equipment_id);
+CREATE INDEX idx_repair_requests_logistics_received ON repair_requests(logistics_received_at);
+CREATE INDEX idx_repair_requests_logistics_handover ON repair_requests(logistics_handover_at);
 CREATE INDEX idx_repair_requests_created ON repair_requests(created_at);
 CREATE INDEX idx_repair_status_history_request ON repair_status_history(request_id);
 CREATE INDEX idx_equipments_department ON equipments(department_id);

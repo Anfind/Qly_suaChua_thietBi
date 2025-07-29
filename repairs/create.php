@@ -39,47 +39,97 @@ ob_start();
                     <?= csrf_field() ?>
                     
                     <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="equipment_id" class="form-label">
-                                    <i class="fas fa-desktop me-1"></i>
-                                    Thiết bị cần sửa chữa <span class="text-danger">*</span>
-                                </label>
-                                <select class="form-select" id="equipment_id" name="equipment_id" required>
-                                    <option value="">-- Chọn thiết bị --</option>
-                                    <?php foreach ($equipments as $equipment): ?>
-                                        <option value="<?= $equipment['id'] ?>" 
-                                                data-model="<?= e($equipment['model']) ?>"
-                                                data-location="<?= e($equipment['location']) ?>"
-                                                <?= ($_POST['equipment_id'] ?? '') == $equipment['id'] ? 'selected' : '' ?>>
-                                            <?= e($equipment['name']) ?> (<?= e($equipment['code']) ?>)
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <div class="form-text" id="equipmentInfo"></div>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="urgency_level" class="form-label">
-                                    <i class="fas fa-exclamation-circle me-1"></i>
-                                    Mức độ khẩn cấp
-                                </label>
-                                <select class="form-select" id="urgency_level" name="urgency_level">
-                                    <option value="low" <?= ($_POST['urgency_level'] ?? 'medium') === 'low' ? 'selected' : '' ?>>
-                                        🟢 Thấp - Không ảnh hưởng công việc
-                                    </option>
-                                    <option value="medium" <?= ($_POST['urgency_level'] ?? 'medium') === 'medium' ? 'selected' : '' ?>>
-                                        🟡 Trung bình - Ảnh hưởng một phần
-                                    </option>
-                                    <option value="high" <?= ($_POST['urgency_level'] ?? 'medium') === 'high' ? 'selected' : '' ?>>
-                                        🟠 Cao - Ảnh hưởng nghiêm trọng
-                                    </option>
-                                    <option value="critical" <?= ($_POST['urgency_level'] ?? 'medium') === 'critical' ? 'selected' : '' ?>>
-                                        🔴 Khẩn cấp - Dừng hoàn toàn
-                                    </option>
-                                </select>
+                        <div class="col-md-12">
+                            <div class="card mb-3 border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-desktop me-1"></i>
+                                        Thông tin thiết bị cần sửa chữa <span class="text-warning">*</span>
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="equipment_name" class="form-label">
+                                                    Tên thiết bị <span class="text-danger">*</span>
+                                                </label>
+                                                <input type="text" class="form-control" id="equipment_name" name="equipment_name" 
+                                                       required placeholder="VD: Máy tính để bàn, Máy in, Máy chiếu..."
+                                                       value="<?= e($_POST['equipment_name'] ?? '') ?>">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="equipment_code" class="form-label">
+                                                    Mã thiết bị (nếu có)
+                                                </label>
+                                                <input type="text" class="form-control" id="equipment_code" name="equipment_code" 
+                                                       placeholder="VD: PC001, PRINT002..."
+                                                       value="<?= e($_POST['equipment_code'] ?? '') ?>">
+                                                <div class="form-text">Để trống nếu chưa có mã thiết bị</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="equipment_model" class="form-label">
+                                                    Model/Phiên bản
+                                                </label>
+                                                <input type="text" class="form-control" id="equipment_model" name="equipment_model" 
+                                                       placeholder="VD: Dell OptiPlex 7090, HP LaserJet Pro..."
+                                                       value="<?= e($_POST['equipment_model'] ?? '') ?>">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="equipment_brand" class="form-label">
+                                                    Hãng sản xuất
+                                                </label>
+                                                <input type="text" class="form-control" id="equipment_brand" name="equipment_brand" 
+                                                       placeholder="VD: Dell, HP, Canon, Epson..."
+                                                       value="<?= e($_POST['equipment_brand'] ?? '') ?>">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="equipment_location" class="form-label">
+                                                    Vị trí đặt thiết bị <span class="text-danger">*</span>
+                                                </label>
+                                                <input type="text" class="form-control" id="equipment_location" name="equipment_location" 
+                                                       required placeholder="VD: Phòng 101, Tầng 2, Khoa CNTT..."
+                                                       value="<?= e($_POST['equipment_location'] ?? '') ?>">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="urgency_level" class="form-label">
+                                                    <i class="fas fa-exclamation-circle me-1"></i>
+                                                    Mức độ khẩn cấp
+                                                </label>
+                                                <select class="form-select" id="urgency_level" name="urgency_level">
+                                                    <option value="low" <?= ($_POST['urgency_level'] ?? 'medium') === 'low' ? 'selected' : '' ?>>
+                                                        🟢 Thấp - Không ảnh hưởng công việc
+                                                    </option>
+                                                    <option value="medium" <?= ($_POST['urgency_level'] ?? 'medium') === 'medium' ? 'selected' : '' ?>>
+                                                        🟡 Trung bình - Ảnh hưởng một phần
+                                                    </option>
+                                                    <option value="high" <?= ($_POST['urgency_level'] ?? 'medium') === 'high' ? 'selected' : '' ?>>
+                                                        🟠 Cao - Ảnh hưởng nghiêm trọng
+                                                    </option>
+                                                    <option value="critical" <?= ($_POST['urgency_level'] ?? 'medium') === 'critical' ? 'selected' : '' ?>>
+                                                        🔴 Khẩn cấp - Dừng hoàn toàn
+                                                    </option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -139,10 +189,13 @@ ob_start();
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-md-6">
-                                    <p><strong>Thiết bị:</strong> <span id="previewEquipment">-</span></p>
-                                    <p><strong>Mức độ:</strong> <span id="previewUrgency">-</span></p>
+                                    <p><strong>Thiết bị:</strong> <span id="previewEquipmentName">-</span></p>
+                                    <p><strong>Mã thiết bị:</strong> <span id="previewEquipmentCode">-</span></p>
+                                    <p><strong>Model:</strong> <span id="previewEquipmentModel">-</span></p>
+                                    <p><strong>Vị trí:</strong> <span id="previewEquipmentLocation">-</span></p>
                                 </div>
                                 <div class="col-md-6">
+                                    <p><strong>Mức độ:</strong> <span id="previewUrgency">-</span></p>
                                     <p><strong>Người đề xuất:</strong> <?= e(current_user()['full_name']) ?></p>
                                     <p><strong>Đơn vị:</strong> <?= e(current_user()['department_name']) ?></p>
                                 </div>
@@ -246,35 +299,71 @@ $custom_css = "
         background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
         transform: translateY(-1px);
     }
+    
+    .card.border-primary {
+        border-color: #007bff !important;
+        box-shadow: 0 0 0 0.1rem rgba(0, 123, 255, 0.25);
+    }
+    
+    .card-header.bg-primary {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .form-control, .form-select {
+        border-radius: 8px;
+        border: 1px solid #ced4da;
+        transition: all 0.15s ease-in-out;
+    }
+    
+    .form-control:hover, .form-select:hover {
+        border-color: #80bdff;
+    }
+    
+    .text-warning {
+        color: #ffc107 !important;
+    }
+    
+    .equipment-info-card {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-top: 0.5rem;
+    }
+    
+    /* Animation for form inputs */
+    .form-control, .form-select {
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out, transform 0.15s ease-in-out;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        transform: translateY(-1px);
+    }
+    
+    /* Improved card styling */
+    .card {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        transition: box-shadow 0.15s ease-in-out;
+    }
+    
+    .card:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
 </style>
 ";
 
 // Custom JS
 $custom_js = "
 <script>
-    // Equipment selection handler
-    document.getElementById('equipment_id').addEventListener('change', function() {
-        const option = this.options[this.selectedIndex];
-        const infoDiv = document.getElementById('equipmentInfo');
-        
-        if (option.value) {
-            const model = option.dataset.model || 'Không có';
-            const location = option.dataset.location || 'Không có';
-            
-            infoDiv.innerHTML = `
-                <div class='equipment-card'>
-                    <small><strong>Model:</strong> \${model}</small><br>
-                    <small><strong>Vị trí:</strong> \${location}</small>
-                </div>
-            `;
-        } else {
-            infoDiv.innerHTML = '';
-        }
-        
-        updatePreview();
-    });
-    
-    // Problem description handler
+    // Form input handlers for preview
+    document.getElementById('equipment_name').addEventListener('input', updatePreview);
+    document.getElementById('equipment_code').addEventListener('input', updatePreview);
+    document.getElementById('equipment_model').addEventListener('input', updatePreview);
+    document.getElementById('equipment_location').addEventListener('input', updatePreview);
     document.getElementById('problem_description').addEventListener('input', updatePreview);
     document.getElementById('urgency_level').addEventListener('change', updatePreview);
     
@@ -350,13 +439,18 @@ $custom_js = "
     
     // Update preview content
     function updatePreview() {
-        const equipmentSelect = document.getElementById('equipment_id');
+        const equipmentName = document.getElementById('equipment_name').value;
+        const equipmentCode = document.getElementById('equipment_code').value;
+        const equipmentModel = document.getElementById('equipment_model').value;
+        const equipmentLocation = document.getElementById('equipment_location').value;
         const urgencySelect = document.getElementById('urgency_level');
         const description = document.getElementById('problem_description').value;
         
-        // Equipment
-        const equipmentText = equipmentSelect.options[equipmentSelect.selectedIndex].text;
-        document.getElementById('previewEquipment').textContent = equipmentText === '-- Chọn thiết bị --' ? '-' : equipmentText;
+        // Equipment info
+        document.getElementById('previewEquipmentName').textContent = equipmentName || '-';
+        document.getElementById('previewEquipmentCode').textContent = equipmentCode || 'Chưa có mã';
+        document.getElementById('previewEquipmentModel').textContent = equipmentModel || '-';
+        document.getElementById('previewEquipmentLocation').textContent = equipmentLocation || '-';
         
         // Urgency
         const urgencyText = urgencySelect.options[urgencySelect.selectedIndex].text;
@@ -366,8 +460,68 @@ $custom_js = "
         document.getElementById('previewDescription').textContent = description || '-';
     }
     
-    // Form validation
+    // Auto-generate equipment code suggestion
+    function suggestEquipmentCode() {
+        const equipmentName = document.getElementById('equipment_name').value;
+        const codeInput = document.getElementById('equipment_code');
+        
+        if (equipmentName && !codeInput.value) {
+            // Generate code from equipment name
+            let code = equipmentName
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/đ/g, 'd')
+                .replace(/[^a-z0-9]/g, '')
+                .slice(0, 6)
+                .toUpperCase();
+            
+            if (code.length >= 2) {
+                // Add random number
+                const randomNum = Math.floor(Math.random() * 999) + 1;
+                code += randomNum.toString().padStart(3, '0');
+                codeInput.value = code;
+            }
+        }
+    }
+    
+    // Auto-suggest equipment code when name is entered
+    document.getElementById('equipment_name').addEventListener('blur', suggestEquipmentCode);
+    
+    // Form validation before submit
+    function validateForm() {
+        const equipmentName = document.getElementById('equipment_name').value.trim();
+        const equipmentLocation = document.getElementById('equipment_location').value.trim();
+        const description = document.getElementById('problem_description').value.trim();
+        
+        if (!equipmentName) {
+            alert('Vui lòng nhập tên thiết bị');
+            document.getElementById('equipment_name').focus();
+            return false;
+        }
+        
+        if (!equipmentLocation) {
+            alert('Vui lòng nhập vị trí thiết bị');
+            document.getElementById('equipment_location').focus();
+            return false;
+        }
+        
+        if (!description) {
+            alert('Vui lòng mô tả tình trạng lỗi');
+            document.getElementById('problem_description').focus();
+            return false;
+        }
+        
+        return true;
+    }
+    
+    // Form submit handler
     document.getElementById('createRequestForm').addEventListener('submit', function(e) {
+        if (!validateForm()) {
+            e.preventDefault();
+            return false;
+        }
+        
         const submitBtn = e.target.querySelector('button[type=\"submit\"]');
         submitBtn.innerHTML = '<span class=\"spinner-border spinner-border-sm me-2\"></span>Đang tạo đơn...';
         submitBtn.disabled = true;
@@ -378,6 +532,11 @@ $custom_js = "
     textarea.addEventListener('input', function() {
         this.style.height = 'auto';
         this.style.height = (this.scrollHeight) + 'px';
+    });
+    
+    // Initialize preview on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        updatePreview();
     });
 </script>
 ";

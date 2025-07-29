@@ -1,6 +1,5 @@
 <?php
 require_once __DIR__ . '/../config/config.php';
-require_once __DIR__ . '/../utils/notification_helpers.php';
 
 require_role('logistics');
 
@@ -72,10 +71,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'created_at' => date('Y-m-d H:i:s')
             ]);
             
-            // Gửi thông báo workflow
-            // Gọi notification system mới
-            notifyLogisticsReceived($request_id, $request['request_code'], $user['id']);
-            
             $success = 'Đã xác nhận nhận đề xuất thành công';
             
         } elseif ($action === 'handover') {
@@ -102,9 +97,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'notes' => $full_notes,
                 'created_at' => date('Y-m-d H:i:s')
             ]);
-            
-            // Gửi thông báo workflow
-            notifyLogisticsHandover($request_id, $request['request_code'], $user['id']);
             
             $success = 'Đã xác nhận bàn giao cho văn thư thành công';
         }
@@ -221,7 +213,7 @@ ob_start();
         <?php if ($request['status_code'] === 'PENDING_HANDOVER'): ?>
         <!-- Form nhận đề xuất -->
         <form method="POST" class="mt-4">
-            <?= csrf_field() ?>
+            <?= csrf_token() ?>
             <input type="hidden" name="request_id" value="<?= $request['id'] ?>">
             <input type="hidden" name="action" value="receive">
             
@@ -255,7 +247,7 @@ ob_start();
         <?php elseif ($request['status_code'] === 'LOGISTICS_RECEIVED'): ?>
         <!-- Form bàn giao cho văn thư -->
         <form method="POST" class="mt-4">
-            <?= csrf_field() ?>
+            <?= csrf_token() ?>
             <input type="hidden" name="request_id" value="<?= $request['id'] ?>">
             <input type="hidden" name="action" value="handover">
             

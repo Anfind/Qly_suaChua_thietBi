@@ -98,6 +98,7 @@ foreach ($uploadDirs as $dir) {
 require_once BASE_PATH . 'utils/helpers.php';
 require_once BASE_PATH . 'utils/advanced_helpers.php';
 require_once BASE_PATH . 'utils/attachment_helpers.php';
+require_once BASE_PATH . 'utils/notification_helpers.php';
 require_once BASE_PATH . 'widgets/attachment_widgets.php';
 
 // Xử lý CSRF token

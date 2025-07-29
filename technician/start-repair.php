@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../utils/notification_helpers.php';
 
 require_role('technician');
 
@@ -40,6 +41,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'notes' => $notes ?: 'Bắt đầu sửa chữa thiết bị',
             'created_at' => date('Y-m-d H:i:s')
         ]);
+        
+        // Gửi thông báo workflow
+        $request_info = $db->fetch("SELECT request_code FROM repair_requests WHERE id = ?", [$request_id]);
+        
+        // Gửi thông báo khi bắt đầu sửa chữa
+        // Có thể tạo function notifyRepairStarted() trong notification_helpers.php nếu cần
         
         // Log activity
         log_activity('start_repair', [

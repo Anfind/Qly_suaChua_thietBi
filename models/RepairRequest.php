@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/User.php';
+require_once __DIR__ . '/../utils/notification_helpers.php';
 
 /**
  * Model RepairRequest - Quản lý đơn sửa chữa
@@ -20,9 +21,15 @@ class RepairRequest {
         try {
             // Tạo mã đơn
             $request_code = $this->generateRequestCode();
+            if (!$request_code) {
+                throw new Exception('Không thể tạo mã đơn sửa chữa');
+            }
             
             // Lấy trạng thái ban đầu
             $initial_status = $this->getStatusByCode('PENDING_HANDOVER');
+            if (!$initial_status) {
+                throw new Exception('Không tìm thấy trạng thái PENDING_HANDOVER trong hệ thống');
+            }
             
             // Xử lý upload files
             $images = [];
@@ -30,18 +37,22 @@ class RepairRequest {
             
             if (isset($data['images']) && is_array($data['images'])) {
                 foreach ($data['images'] as $image) {
-                    if ($image['error'] === UPLOAD_ERR_OK) {
+                    if (isset($image['error']) && $image['error'] === UPLOAD_ERR_OK) {
                         $filename = upload_file($image, UPLOAD_REQUEST_PATH, ALLOWED_IMAGE_TYPES);
-                        $images[] = $filename;
+                        if ($filename) {
+                            $images[] = $filename;
+                        }
                     }
                 }
             }
             
             if (isset($data['videos']) && is_array($data['videos'])) {
                 foreach ($data['videos'] as $video) {
-                    if ($video['error'] === UPLOAD_ERR_OK) {
+                    if (isset($video['error']) && $video['error'] === UPLOAD_ERR_OK) {
                         $filename = upload_file($video, UPLOAD_REQUEST_PATH, ALLOWED_VIDEO_TYPES);
-                        $videos[] = $filename;
+                        if ($filename) {
+                            $videos[] = $filename;
+                        }
                     }
                 }
             }
@@ -59,15 +70,33 @@ class RepairRequest {
             ];
             
             $request_id = $this->db->insert('repair_requests', $requestData);
+            if (!$request_id) {
+                throw new Exception('Không thể tạo đơn sửa chữa trong database');
+            }
             
             // Tạo lịch sử trạng thái
-            $this->addStatusHistory($request_id, $initial_status['id'], $data['requester_id'], 'Tạo đơn sửa chữa');
+            $history_id = $this->addStatusHistory($request_id, $initial_status['id'], $data['requester_id'], 'Tạo đơn sửa chữa');
+            if (!$history_id) {
+                throw new Exception('Không thể tạo lịch sử trạng thái');
+            }
             
             $this->db->commit();
+            
+            // Trigger notification cho request mới (sau khi commit)
+            if (function_exists('notifyNewRepairRequest')) {
+                try {
+                    notifyNewRepairRequest($request_id, $request_code, $data['requester_id']);
+                } catch (Exception $e) {
+                    // Log notification error but don't fail the main process
+                    error_log("Notification error in create repair request: " . $e->getMessage());
+                }
+            }
+            
             return $request_code;
             
         } catch (Exception $e) {
             $this->db->rollback();
+            error_log("Error creating repair request: " . $e->getMessage());
             throw $e;
         }
     }
@@ -98,9 +127,15 @@ class RepairRequest {
                 'updated_at' => date('Y-m-d H:i:s')
             ];
             
-            // Cập nhật thông tin assignment
+            // Cập nhật thông tin assignment và timestamps
             $user = (new User())->getById($user_id);
             switch ($new_status_code) {
+                case 'LOGISTICS_RECEIVED':
+                    $updateData['logistics_received_at'] = date('Y-m-d H:i:s');
+                    break;
+                case 'LOGISTICS_HANDOVER':
+                    $updateData['logistics_handover_at'] = date('Y-m-d H:i:s');
+                    break;
                 case 'HANDED_TO_CLERK':
                     $updateData['assigned_logistics_id'] = $user_id;
                     break;
@@ -417,7 +452,9 @@ class RepairRequest {
         }
         
         $allowed_transitions = [
-            'PENDING_HANDOVER' => ['logistics' => ['HANDED_TO_CLERK', 'CANCELLED']],
+            'PENDING_HANDOVER' => ['logistics' => ['LOGISTICS_RECEIVED', 'CANCELLED']],
+            'LOGISTICS_RECEIVED' => ['logistics' => ['LOGISTICS_HANDOVER', 'CANCELLED']],
+            'LOGISTICS_HANDOVER' => ['clerk' => ['HANDED_TO_CLERK', 'SENT_TO_REPAIR', 'CANCELLED']],
             'HANDED_TO_CLERK' => ['clerk' => ['SENT_TO_REPAIR', 'CANCELLED']],
             'SENT_TO_REPAIR' => ['technician' => ['IN_PROGRESS', 'CANCELLED']],
             'IN_PROGRESS' => ['technician' => ['REPAIR_COMPLETED', 'CANCELLED']],

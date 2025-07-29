@@ -147,6 +147,13 @@ class Database {
     }
 
     /**
+     * Kiểm tra có transaction đang active không
+     */
+    public function inTransaction() {
+        return $this->pdo->inTransaction();
+    }
+
+    /**
      * Kiểm tra kết nối
      */
     public function isConnected() {
