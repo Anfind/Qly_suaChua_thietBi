@@ -342,15 +342,15 @@ function notifyLogisticsHandover($requestId, $requestCode, $logisticsUserId) {
 }
 
 /**
- * Gửi thông báo khi clerk chuyển sửa chữa
+ * Gửi thông báo khi clerk chuyển sửa chữa (CHỈ CHO PHÒNG BAN TRONG WORKFLOW)
  */
 function notifyClerkSentToRepair($requestId, $requestCode, $clerkUserId, $departmentIds = []) {
     $db = Database::getInstance();
     
     try {
-        // Thông báo cho technician theo workflow
+        // **FIX QUAN TRỌNG**: CHỈ thông báo cho phòng ban được chỉ định trong workflow
         if (!empty($departmentIds)) {
-            // Multi-department workflow
+            // Multi-department workflow: chỉ thông báo cho phòng ban được chọn
             $technicianUsers = $db->fetchAll("
                 SELECT id FROM users 
                 WHERE department_id IN (" . implode(',', array_fill(0, count($departmentIds), '?')) . ")
@@ -358,12 +358,29 @@ function notifyClerkSentToRepair($requestId, $requestCode, $clerkUserId, $depart
                 AND status = 'active'
             ", $departmentIds);
         } else {
-            // Traditional assignment
-            $technicianUsers = $db->fetchAll("
-                SELECT id FROM users 
-                WHERE role_id = (SELECT id FROM roles WHERE name = 'technician') 
-                AND status = 'active'
-            ");
+            // Nếu không có departmentIds, lấy từ workflow steps
+            $workflowDepts = $db->fetchAll("
+                SELECT DISTINCT assigned_department_id as id
+                FROM repair_workflow_steps 
+                WHERE request_id = ?
+            ", [$requestId]);
+            
+            if (!empty($workflowDepts)) {
+                $deptIds = array_column($workflowDepts, 'id');
+                $technicianUsers = $db->fetchAll("
+                    SELECT id FROM users 
+                    WHERE department_id IN (" . implode(',', array_fill(0, count($deptIds), '?')) . ")
+                    AND role_id = (SELECT id FROM roles WHERE name = 'technician') 
+                    AND status = 'active'
+                ", $deptIds);
+                
+                // Log để debug
+                error_log("NOTIFICATION: Gửi thông báo cho " . count($technicianUsers) . " technician trong " . count($deptIds) . " phòng ban workflow");
+            } else {
+                // KHÔNG có workflow → KHÔNG gửi thông báo
+                error_log("NOTIFICATION: Không có workflow cho request $requestId → không gửi thông báo");
+                return true; // Không phải lỗi, chỉ là không có workflow
+            }
         }
         
         $technicianUserIds = array_column($technicianUsers, 'id');
@@ -378,6 +395,10 @@ function notifyClerkSentToRepair($requestId, $requestCode, $clerkUserId, $depart
                 $requestId,
                 url("technician/workflow.php")
             );
+            
+            error_log("NOTIFICATION SUCCESS: Đã gửi thông báo cho " . count($technicianUserIds) . " technician");
+        } else {
+            error_log("NOTIFICATION WARNING: Không tìm thấy technician nào trong workflow departments");
         }
         
         return true;

@@ -79,18 +79,19 @@ class RepairController {
     }
     
     /**
-     * Dashboard kỹ thuật
+     * Dashboard kỹ thuật (CHỈ hiển thị đơn của phòng ban trong workflow)
      */
     private function technicianDashboard() {
         $user = current_user();
         
-        // Lấy workflow steps cho multi-department repair
+        // CHỈ lấy workflow steps cho phòng ban hiện tại (KHÔNG bao gồm assigned_technician_id)
         $pendingSteps = $this->repairModel->getByWorkflowForTechnician($user['id'], ['pending']);
         $inProgressSteps = $this->repairModel->getByWorkflowForTechnician($user['id'], ['in_progress']);
         
-        // Fallback: Lấy đơn truyền thống (assigned_technician_id)
-        $sent = $this->repairModel->getByStatus('SENT_TO_REPAIR', ['technician_id' => $user['id']]);
-        $inProgress = $this->repairModel->getByStatus('IN_PROGRESS', ['technician_id' => $user['id']]);
+        // KHÔNG sử dụng fallback assigned_technician_id để tránh hiển thị sai
+        // Chỉ dùng workflow system hoàn toàn
+        $sent = []; // Không lấy đơn truyền thống nữa
+        $inProgress = []; // Không lấy đơn truyền thống nữa
         
         return compact('sent', 'inProgress', 'pendingSteps', 'inProgressSteps');
     }

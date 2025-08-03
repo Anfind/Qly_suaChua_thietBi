@@ -67,7 +67,7 @@ elseif (has_role('requester')) {
 // Thống kê cho các role khác
 else {
     if ($user['role_name'] === 'technician') {
-        // Technician: filter theo phòng ban trong workflow steps
+        // Technician: CHỈ filter theo phòng ban trong workflow steps (KHÔNG bao gồm assigned_technician_id)
         $stats = [
             'pending_tasks' => $db->fetch(
                 "SELECT COUNT(DISTINCT rws.request_id) as count 
@@ -78,7 +78,12 @@ else {
                  AND rws.status IN ('pending', 'in_progress')", 
                 [$user['department_id']]
             )['count'],
-            'total_requests' => $db->fetch("SELECT COUNT(*) as count FROM repair_requests")['count'],
+            'total_requests' => $db->fetch(
+                "SELECT COUNT(DISTINCT rws.request_id) as count 
+                 FROM repair_workflow_steps rws 
+                 WHERE rws.assigned_department_id = ?", 
+                [$user['department_id']]
+            )['count'],
             'completed_today' => $db->fetch(
                 "SELECT COUNT(DISTINCT rws.request_id) as count 
                  FROM repair_workflow_steps rws 
