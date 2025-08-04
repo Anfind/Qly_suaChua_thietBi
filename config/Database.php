@@ -6,8 +6,8 @@ class Database {
     private $host = 'localhost';
     private $dbname = 'equipment_repair_management';
     private $username = 'root';
-    // private $password = '210506';
-    private $password = '';
+    private $password = '210506';
+    // private $password = '';
 
     private $pdo;
     private static $instance = null;
