@@ -15,6 +15,14 @@ if (!is_logged_in()) {
 }
 
 $user = current_user();
+
+// Chặn technician truy cập API notifications
+if (has_role('technician')) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Access denied for technician role']);
+    exit;
+}
+
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
 header('Content-Type: application/json');

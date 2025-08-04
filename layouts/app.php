@@ -530,7 +530,8 @@
     $notification_count = 0;
     $recent_notifications = [];
     
-    if ($user && function_exists('getUnreadNotificationCount')) {
+    // Chỉ load thông báo cho non-technician users
+    if ($user && function_exists('getUnreadNotificationCount') && !has_role('technician')) {
         $notification_count = getUnreadNotificationCount($user['id']);
         $recent_notifications = getRecentNotifications($user['id'], 5);
     }
@@ -673,7 +674,8 @@
                 </div>
                 
                 <div class="user-menu">
-                    <!-- Notifications -->
+                    <!-- Notifications - ẨN CHO TECHNICIAN -->
+                    <?php if (!has_role('technician')): ?>
                     <div class="dropdown">
                         <button class="btn btn-link position-relative" type="button" data-bs-toggle="dropdown" id="notificationDropdown">
                             <i class="fas fa-bell"></i>
@@ -742,6 +744,7 @@
                             <?php endif; ?>
                         </ul>
                     </div>
+                    <?php endif; ?>
                     
                     <!-- User dropdown -->
                     <div class="dropdown">

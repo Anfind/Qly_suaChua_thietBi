@@ -342,47 +342,81 @@ function notifyLogisticsHandover($requestId, $requestCode, $logisticsUserId) {
 }
 
 /**
- * Gửi thông báo khi clerk chuyển sửa chữa (CHỈ CHO PHÒNG BAN TRONG WORKFLOW)
+ * Gửi thông báo khi clerk chuyển sửa chữa (CHO TẤT CẢ PHÒNG BAN ĐƯỢC CHỌN)
  */
 function notifyClerkSentToRepair($requestId, $requestCode, $clerkUserId, $departmentIds = []) {
     $db = Database::getInstance();
     
     try {
-        // **FIX QUAN TRỌNG**: CHỈ thông báo cho PHÒNG BAN ĐẦU TIÊN trong workflow
-        // Vì workflow được xử lý tuần tự, chỉ phòng ban đầu tiên cần được thông báo
+        // ** FIX QUAN TRỌNG**: Gửi thông báo cho TẤT CẢ phòng ban được chọn
+        $allTechnicianIds = [];
+        $departmentNames = [];
+        
         if (!empty($departmentIds)) {
-            // Chỉ lấy phòng ban ĐẦU TIÊN trong workflow
-            $firstDepartmentId = $departmentIds[0];
+            // Lặp qua TẤT CẢ phòng ban được chọn và kiểm tra có trong workflow không
+            error_log("NOTIFICATION: Clerk chọn " . count($departmentIds) . " phòng ban: " . implode(', ', $departmentIds));
             
-            $technicianUsers = $db->fetchAll("
-                SELECT id, full_name, department_id 
-                FROM users 
-                WHERE department_id = ?
-                AND role_id = (SELECT id FROM roles WHERE name = 'technician') 
-                AND status = 'active'
-            ", [$firstDepartmentId]);
+            foreach ($departmentIds as $departmentId) {
+                // Kiểm tra phòng ban này có trong workflow steps không
+                $stepExists = $db->fetch("
+                    SELECT COUNT(*) as count 
+                    FROM repair_workflow_steps 
+                    WHERE request_id = ? AND assigned_department_id = ?
+                ", [$requestId, $departmentId]);
+                
+                if ($stepExists && $stepExists['count'] > 0) {
+                    // Có trong workflow, lấy technician của phòng ban này
+                    $technicianUsers = $db->fetchAll("
+                        SELECT u.id, u.full_name, u.department_id, d.name as dept_name
+                        FROM users u
+                        LEFT JOIN departments d ON u.department_id = d.id
+                        WHERE u.department_id = ?
+                        AND u.role_id = (SELECT id FROM roles WHERE name = 'technician') 
+                        AND u.status = 'active'
+                    ", [$departmentId]);
+                    
+                    foreach ($technicianUsers as $tech) {
+                        $allTechnicianIds[] = $tech['id'];
+                        $departmentNames[$departmentId] = $tech['dept_name'];
+                    }
+                    error_log("NOTIFICATION: Phòng ban $departmentId ({$departmentNames[$departmentId]}) có trong workflow - thêm " . count($technicianUsers) . " technician");
+                } else {
+                    error_log("NOTIFICATION WARNING: Phòng ban $departmentId KHÔNG có trong workflow steps - bỏ qua");
+                }
+            }
             
-            // Log để debug
-            error_log("NOTIFICATION: Chỉ gửi thông báo cho phòng ban đầu tiên (ID: $firstDepartmentId) - tìm thấy " . count($technicianUsers) . " technician");
+            $deptNamesStr = implode(', ', array_unique($departmentNames));
+            error_log("NOTIFICATION: Chỉ gửi thông báo cho phòng ban được chọn và có trong workflow ($deptNamesStr) - tìm thấy " . count($allTechnicianIds) . " technician");
+            
             
         } else {
-            // Nếu không có departmentIds, lấy step đầu tiên từ workflow
-            $firstWorkflowDept = $db->fetch("
-                SELECT assigned_department_id 
+            // Nếu không có departmentIds, lấy TẤT CẢ step từ workflow
+            $workflowDepts = $db->fetchAll("
+                SELECT DISTINCT assigned_department_id 
                 FROM repair_workflow_steps 
-                WHERE request_id = ? AND step_order = 1
+                WHERE request_id = ?
+                ORDER BY step_order
             ", [$requestId]);
             
-            if ($firstWorkflowDept) {
-                $technicianUsers = $db->fetchAll("
-                    SELECT id, full_name, department_id 
-                    FROM users 
-                    WHERE department_id = ?
-                    AND role_id = (SELECT id FROM roles WHERE name = 'technician') 
-                    AND status = 'active'
-                ", [$firstWorkflowDept['assigned_department_id']]);
+            if (!empty($workflowDepts)) {
+                foreach ($workflowDepts as $step) {
+                    $technicianUsers = $db->fetchAll("
+                        SELECT u.id, u.full_name, u.department_id, d.name as dept_name
+                        FROM users u
+                        LEFT JOIN departments d ON u.department_id = d.id
+                        WHERE u.department_id = ?
+                        AND u.role_id = (SELECT id FROM roles WHERE name = 'technician') 
+                        AND u.status = 'active'
+                    ", [$step['assigned_department_id']]);
+                    
+                    foreach ($technicianUsers as $tech) {
+                        $allTechnicianIds[] = $tech['id'];
+                        $departmentNames[$step['assigned_department_id']] = $tech['dept_name'];
+                    }
+                }
                 
-                error_log("NOTIFICATION: Gửi thông báo cho step đầu tiên (dept ID: {$firstWorkflowDept['assigned_department_id']}) - tìm thấy " . count($technicianUsers) . " technician");
+                $deptNamesStr = implode(', ', array_unique($departmentNames));
+                error_log("NOTIFICATION: Gửi thông báo cho TẤT CẢ phòng ban trong workflow ($deptNamesStr) - tìm thấy " . count($allTechnicianIds) . " technician");
             } else {
                 // KHÔNG có workflow → KHÔNG gửi thông báo
                 error_log("NOTIFICATION: Không có workflow cho request $requestId → không gửi thông báo");
@@ -390,22 +424,25 @@ function notifyClerkSentToRepair($requestId, $requestCode, $clerkUserId, $depart
             }
         }
         
-        $technicianUserIds = array_column($technicianUsers, 'id');
+        // Loại bỏ ID trùng lặp (nếu có technician ở nhiều phòng ban)
+        $allTechnicianIds = array_unique($allTechnicianIds);
         
-        if (!empty($technicianUserIds)) {
-            createBulkNotifications(
-                $technicianUserIds,
-                '🔧 Đơn sửa chữa mới',
-                "Đơn {$requestCode} đã được giao cho kỹ thuật, cần xử lý",
-                'info',
-                'repair_request',
-                $requestId,
-                url("technician/workflow.php")
-            );
+        // *** TẮT THÔNG BÁO CHO TECHNICIAN - THEO YÊU CẦU USER ***
+        if (!empty($allTechnicianIds)) {
+            $deptNamesStr = implode(', ', array_unique($departmentNames));
+            // createBulkNotifications(
+            //     $allTechnicianIds,
+            //     '🔧 Đơn sửa chữa mới',
+            //     "Đơn {$requestCode} đã được giao cho kỹ thuật, cần xử lý",
+            //     'info',
+            //     'repair_request',
+            //     $requestId,
+            //     url("technician/workflow.php")
+            // );
             
-            error_log("NOTIFICATION SUCCESS: Đã gửi thông báo cho " . count($technicianUserIds) . " technician trong phòng ban đầu tiên");
+            error_log("NOTIFICATION DISABLED: Đã TẮT thông báo cho " . count($allTechnicianIds) . " technician trong các phòng ban: $deptNamesStr");
         } else {
-            error_log("NOTIFICATION WARNING: Không tìm thấy technician nào trong phòng ban đầu tiên của workflow");
+            error_log("NOTIFICATION DISABLED: Không tìm thấy technician nào trong các phòng ban được chọn - nhưng thông báo đã được tắt");
         }
         
         return true;
@@ -476,17 +513,18 @@ function processWorkflowStepCompletion($requestId, $technicianUserId) {
                 $request = $db->fetch("SELECT request_code FROM repair_requests WHERE id = ?", [$requestId]);
                 $nextTechIds = array_column($nextTechnicians, 'id');
                 
-                createBulkNotifications(
-                    $nextTechIds,
-                    '🔧 Workflow tiếp theo',
-                    "Đơn {$request['request_code']} đã chuyển đến phòng ban của bạn để tiếp tục xử lý",
-                    'info',
-                    'repair_request',
-                    $requestId,
-                    url("technician/workflow.php")
-                );
+                // *** TẮT THÔNG BÁO CHO TECHNICIAN - THEO YÊU CẦU USER ***
+                // createBulkNotifications(
+                //     $nextTechIds,
+                //     '🔧 Workflow tiếp theo',
+                //     "Đơn {$request['request_code']} đã chuyển đến phòng ban của bạn để tiếp tục xử lý",
+                //     'info',
+                //     'repair_request',
+                //     $requestId,
+                //     url("technician/workflow.php")
+                // );
                 
-                error_log("WORKFLOW: Đã chuyển sang step tiếp theo (order {$nextStep['step_order']}) và gửi thông báo cho " . count($nextTechIds) . " technician");
+                error_log("WORKFLOW NOTIFICATION DISABLED: Đã chuyển sang step tiếp theo (order {$nextStep['step_order']}) - TẮT thông báo cho " . count($nextTechIds) . " technician");
             }
             
             return ['next_step' => true, 'step_order' => $nextStep['step_order']];
