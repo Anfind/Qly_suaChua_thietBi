@@ -7,20 +7,8 @@ require_login();
 $title = 'Thông báo';
 $user = current_user();
 
-// Xử lý mark as read
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? '';
-    
-    if ($action === 'mark_read' && isset($_POST['notification_id'])) {
-        markNotificationAsRead($_POST['notification_id']);
-        redirect('notifications.php', 'Đã đánh dấu thông báo đã đọc', 'success');
-    }
-    
-    if ($action === 'mark_all_read') {
-        markAllNotificationsAsRead($user['id']);
-        redirect('notifications.php', 'Đã đánh dấu tất cả thông báo đã đọc', 'success');
-    }
-}
+// NOTE: Đã bỏ xử lý mark as read theo yêu cầu
+// Chỉ giữ lại hiển thị thông báo
 
 // Phân trang
 $page = (int)($_GET['page'] ?? 1);
@@ -93,18 +81,7 @@ ob_start();
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h1><i class="fas fa-bell me-2"></i>Thông báo</h1>
-                <div class="d-flex gap-2">
-                    <?php if ($stats['unread'] > 0): ?>
-                        <form method="POST" class="d-inline">
-                            <input type="hidden" name="action" value="mark_all_read">
-                            <?= csrf_field() ?>
-                            <button type="submit" class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-check-double me-1"></i>
-                                Đánh dấu tất cả đã đọc
-                            </button>
-                        </form>
-                    <?php endif; ?>
-                </div>
+                <!-- NOTE: Đã bỏ nút "Đánh dấu tất cả đã đọc" theo yêu cầu -->
             </div>
             
             <!-- Thống kê -->
@@ -223,16 +200,7 @@ ob_start();
                                                     </small>
                                                 </div>
                                                 <div class="notification-actions">
-                                                    <?php if (!$notification['is_read']): ?>
-                                                        <form method="POST" class="d-inline">
-                                                            <input type="hidden" name="action" value="mark_read">
-                                                            <input type="hidden" name="notification_id" value="<?= $notification['id'] ?>">
-                                                            <?= csrf_field() ?>
-                                                            <button type="submit" class="btn btn-sm btn-outline-primary" title="Đánh dấu đã đọc">
-                                                                <i class="fas fa-check"></i>
-                                                            </button>
-                                                        </form>
-                                                    <?php endif; ?>
+                                                    <!-- NOTE: Đã bỏ nút "Đánh dấu đã đọc" theo yêu cầu -->
                                                     
                                                     <?php if ($notification['action_url']): ?>
                                                         <a href="<?= url($notification['action_url']) ?>" 

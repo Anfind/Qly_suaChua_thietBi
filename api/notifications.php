@@ -35,7 +35,9 @@ try {
             break;
             
         case 'mark_read':
-            // Đánh dấu một thông báo đã đọc
+            // NOTE: Chức năng đánh dấu đã đọc đã bị vô hiệu hóa theo yêu cầu
+            // Code được giữ lại cho tương lai nếu cần kích hoạt lại
+            /*
             $input = json_decode(file_get_contents('php://input'), true);
             $notificationId = $input['notification_id'] ?? 0;
             
@@ -45,12 +47,18 @@ try {
             } else {
                 echo json_encode(['success' => false, 'error' => 'Invalid notification ID']);
             }
+            */
+            echo json_encode(['success' => false, 'error' => 'Mark as read functionality disabled']);
             break;
             
         case 'mark_all_read':
-            // Đánh dấu tất cả thông báo đã đọc
+            // NOTE: Chức năng đánh dấu tất cả đã đọc đã bị vô hiệu hóa theo yêu cầu  
+            // Code được giữ lại cho tương lai nếu cần kích hoạt lại
+            /*
             $success = markAllNotificationsAsRead($user['id']);
             echo json_encode(['success' => $success]);
+            */
+            echo json_encode(['success' => false, 'error' => 'Mark all as read functionality disabled']);
             break;
             
         case 'full':

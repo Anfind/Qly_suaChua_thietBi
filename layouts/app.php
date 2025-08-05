@@ -686,11 +686,7 @@
                         <ul class="dropdown-menu dropdown-menu-end notification-dropdown" style="width: 350px; max-height: 400px; overflow-y: auto;">
                             <li class="dropdown-header d-flex justify-content-between align-items-center">
                                 <span><strong>Thông báo</strong></span>
-                                <?php if ($notification_count > 0): ?>
-                                    <button class="btn btn-sm btn-link p-0" onclick="markAllAsRead()">
-                                        <small>Đánh dấu tất cả đã đọc</small>
-                                    </button>
-                                <?php endif; ?>
+                                <!-- NOTE: Đã bỏ chức năng "Đánh dấu tất cả đã đọc" theo yêu cầu -->
                             </li>
                             <li><hr class="dropdown-divider m-0"></li>
                             
@@ -703,8 +699,8 @@
                                 <?php foreach ($recent_notifications as $notification): ?>
                                     <li>
                                         <a class="dropdown-item notification-item <?= $notification['is_read'] ? '' : 'unread' ?>" 
-                                           href="<?= $notification['action_url'] ? url($notification['action_url']) : '#' ?>"
-                                           onclick="markAsRead(<?= $notification['id'] ?>)">
+                                           href="<?= $notification['action_url'] ? url($notification['action_url']) : '#' ?>">
+                                            <!-- NOTE: Đã bỏ onclick="markAsRead()" theo yêu cầu -->
                                             <div class="d-flex">
                                                 <div class="notification-icon me-2">
                                                     <?php
@@ -858,44 +854,8 @@
         // NOTIFICATION SYSTEM
         // ===============================
         
-        // Mark single notification as read
-        function markAsRead(notificationId) {
-            if (!notificationId) return;
-            
-            fetch('<?= url("api/notifications.php") ?>', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    action: 'mark_read',
-                    notification_id: notificationId
-                })
-            }).then(response => response.json())
-              .then(data => {
-                  if (data.success) {
-                      updateNotificationBadge();
-                  }
-              }).catch(err => console.error('Error marking notification as read:', err));
-        }
-        
-        // Mark all notifications as read
-        function markAllAsRead() {
-            fetch('<?= url("api/notifications.php") ?>', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    action: 'mark_all_read'
-                })
-            }).then(response => response.json())
-              .then(data => {
-                  if (data.success) {
-                      location.reload(); // Reload to update UI
-                  }
-              }).catch(err => console.error('Error marking all notifications as read:', err));
-        }
+        // NOTE: Chức năng đánh dấu đã đọc đã bị vô hiệu hóa theo yêu cầu
+        // Chỉ giữ lại function update badge count cho hiển thị
         
         // Update notification badge count
         function updateNotificationBadge() {
@@ -1026,48 +986,8 @@
             });
         });
         
-        // Mark single notification as read
-        function markAsRead(notificationId) {
-            fetch('<?= url("api/notifications.php") ?>', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    action: 'mark_read',
-                    notification_id: notificationId
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    updateNotificationBadge();
-                }
-            })
-            .catch(err => console.error('Error marking notification as read:', err));
-        }
-        
-        // Mark all notifications as read
-        function markAllAsRead() {
-            fetch('<?= url("api/notifications.php") ?>', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    action: 'mark_all_read'
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    updateNotificationBadge();
-                    // Reload the dropdown to show updated state
-                    location.reload();
-                }
-            })
-            .catch(err => console.error('Error marking all notifications as read:', err));
-        }
+        // NOTE: Đã bỏ duplicate markAsRead() và markAllAsRead() functions theo yêu cầu
+        // Chỉ giữ lại phần check notifications phía trên
     </script>
     
     <?php if (isset($custom_js)): ?>
