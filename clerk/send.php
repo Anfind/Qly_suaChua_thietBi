@@ -100,6 +100,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
         }
         
+        // Lấy thông tin request để gửi thông báo
+        $request = $db->fetch("SELECT request_code FROM repair_requests WHERE id = ?", [$request_id]);
+        
         // Thêm vào lịch sử trạng thái
         $db->insert('repair_status_history', [
             'request_id' => $request_id,
@@ -109,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'created_at' => date('Y-m-d H:i:s')
         ]);
         
-        // Gửi thông báo workflow
+        // Gửi thông báo workflow đến các kỹ thuật viên trong phòng ban đã chọn
         notifyClerkSentToRepair($request_id, $request['request_code'], $user['id'], $workflow_dept_ids);
         
         // Tạo workflow steps

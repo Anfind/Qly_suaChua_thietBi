@@ -4,6 +4,12 @@ require_once __DIR__ . '/utils/notification_helpers.php';
 
 require_login();
 
+// Chặn technician truy cập trang thông báo
+if (has_role('technician')) {
+    redirect('dashboard.php', 'Bạn không có quyền truy cập trang thông báo', 'warning');
+    exit;
+}
+
 $title = 'Thông báo';
 $user = current_user();
 
